@@ -2,6 +2,7 @@ import SmoothScroll from "@/components/smooth-scroll";
 import HeroSequence from "@/components/hero-sequence";
 import Hud from "@/components/hud";
 import ApartmentsOverlay from "@/components/apartments/apartments-overlay";
+import GalleryOverlay from "@/components/gallery/gallery-overlay";
 
 export default function Home() {
   return (
@@ -9,6 +10,7 @@ export default function Home() {
       <SmoothScroll />
       <Hud />
       <ApartmentsOverlay />
+      <GalleryOverlay />
 
       <main className="relative">
         <HeroSequence />
