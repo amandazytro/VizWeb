@@ -1,0 +1,10 @@
+{
+  "kind": "hero",
+  "count": 120,
+  "width": 1600,
+  "height": 900,
+  "ext": "jpg",
+  "pattern": "/frames/hero/{n}.jpg",
+  "pad": 4,
+  "note": "Placeholder frames (procedural). Swap for real AVIF renders per docs/asset-encoding-contract."
+}
