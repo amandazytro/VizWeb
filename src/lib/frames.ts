@@ -1,6 +1,10 @@
 // Hero frame-sequence descriptor. Mirrors public/frames/hero/manifest.json.
-// When real renders arrive, regenerate frames per docs and keep this in sync
-// (or fetch the manifest at runtime). Kept static here for a zero-fetch demo.
+// Two aligned mood sets (day/night) share identical camera/geometry so the
+// runtime can cross-fade between them. Swap for real AVIF renders later and
+// keep this in sync (or fetch the manifest at runtime).
+
+export const MOODS = ["day", "night"] as const;
+export type Mood = (typeof MOODS)[number];
 
 export const HERO = {
   count: 120,
@@ -11,11 +15,11 @@ export const HERO = {
   basePath: "/frames/hero",
 } as const;
 
-export function frameUrl(n: number): string {
+export function frameUrl(mood: Mood, n: number): string {
   const idx = Math.min(Math.max(n, 1), HERO.count);
-  return `${HERO.basePath}/${String(idx).padStart(HERO.pad, "0")}.${HERO.ext}`;
+  return `${HERO.basePath}/${mood}/${String(idx).padStart(HERO.pad, "0")}.${HERO.ext}`;
 }
 
-export function posterUrl(): string {
-  return frameUrl(1);
+export function posterUrl(mood: Mood = "day"): string {
+  return frameUrl(mood, 1);
 }

@@ -4,86 +4,95 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import { HERO, frameUrl, posterUrl } from "@/lib/frames";
+import { HERO, MOODS, frameUrl, posterUrl, type Mood } from "@/lib/frames";
+import { useExperience } from "@/lib/store";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 // Scroll distance the pinned hero occupies (× viewport height).
 const SCRUB_VH = 4;
 
+type MoodImages = Record<Mood, HTMLImageElement[]>;
+
 export default function HeroSequence() {
   const sectionRef = useRef<HTMLElement>(null);
   const stickyRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const imagesRef = useRef<MoodImages>({ day: [], night: [] });
   const lastFrame = useRef(0);
+  const moodRef = useRef(useExperience.getState().dayNight);
 
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [reduce, setReduce] = useState(false);
 
-  // Detect reduced-motion (also disables the scrub → static poster).
   useEffect(() => {
-    setReduce(
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    );
+    setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  // Preload the frame sequence.
+  // Preload both mood frame sets.
   useEffect(() => {
     if (reduce) return;
     let cancelled = false;
     let loaded = 0;
-    const imgs: HTMLImageElement[] = [];
+    const total = HERO.count * MOODS.length;
+    const store: MoodImages = { day: [], night: [] };
 
-    for (let i = 1; i <= HERO.count; i++) {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = frameUrl(i);
-      img.onload = img.onerror = () => {
-        if (cancelled) return;
-        loaded++;
-        setProgress(loaded / HERO.count);
-        if (loaded === HERO.count) {
-          imagesRef.current = imgs;
-          setReady(true);
-        }
-      };
-      imgs[i - 1] = img;
+    for (const mood of MOODS) {
+      for (let i = 1; i <= HERO.count; i++) {
+        const img = new Image();
+        img.decoding = "async";
+        img.src = frameUrl(mood, i);
+        img.onload = img.onerror = () => {
+          if (cancelled) return;
+          loaded++;
+          setProgress(loaded / total);
+          if (loaded === total) {
+            imagesRef.current = store;
+            setReady(true);
+          }
+        };
+        store[mood][i - 1] = img;
+      }
     }
-
     return () => {
       cancelled = true;
     };
   }, [reduce]);
 
-  // Cover-fit draw of one frame into the DPR-scaled canvas.
+  // Composite the current frame: day base + night cross-faded by mood (0..1).
   const draw = (frame: number) => {
     const canvas = canvasRef.current;
-    const img = imagesRef.current[frame];
-    if (!canvas || !img) return;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    const dayImg = imagesRef.current.day[frame];
+    const nightImg = imagesRef.current.night[frame];
+    if (!dayImg) return;
 
     const cw = canvas.width;
     const ch = canvas.height;
-    const ir = img.width / img.height;
+    const ir = dayImg.width / dayImg.height;
     const cr = cw / ch;
     let dw = cw;
     let dh = ch;
-    if (cr > ir) {
-      dh = cw / ir;
-    } else {
-      dw = ch * ir;
-    }
+    if (cr > ir) dh = cw / ir;
+    else dw = ch * ir;
     const dx = (cw - dw) / 2;
     const dy = (ch - dh) / 2;
+
     ctx.clearRect(0, 0, cw, ch);
-    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.globalAlpha = 1;
+    ctx.drawImage(dayImg, dx, dy, dw, dh);
+    const mood = moodRef.current;
+    if (nightImg && mood > 0.001) {
+      ctx.globalAlpha = Math.min(mood, 1);
+      ctx.drawImage(nightImg, dx, dy, dw, dh);
+      ctx.globalAlpha = 1;
+    }
     lastFrame.current = frame;
   };
 
-  // Size the canvas backing store to the viewport (DPR-aware) and redraw.
   const resize = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -94,6 +103,17 @@ export default function HeroSequence() {
     canvas.style.height = "100%";
     draw(lastFrame.current);
   };
+
+  // Redraw in place whenever the mood (day/night) changes.
+  useEffect(() => {
+    const unsub = useExperience.subscribe((state) => {
+      if (state.dayNight !== moodRef.current) {
+        moodRef.current = state.dayNight;
+        if (ready && !reduce) draw(lastFrame.current);
+      }
+    });
+    return unsub;
+  }, [ready, reduce]);
 
   useGSAP(
     () => {
@@ -127,7 +147,6 @@ export default function HeroSequence() {
     { dependencies: [ready, reduce], scope: sectionRef }
   );
 
-  // Reduced-motion: a single static poster hero, normal scroll.
   if (reduce) {
     return (
       <section
@@ -136,8 +155,8 @@ export default function HeroSequence() {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={posterUrl()}
-          alt="Premium tower at dusk over the city skyline"
+          src={posterUrl("day")}
+          alt="Premium tower over the city skyline"
           className="absolute inset-0 h-full w-full object-cover"
         />
       </section>
@@ -161,12 +180,11 @@ export default function HeroSequence() {
           aria-hidden="true"
         />
 
-        {/* Loading veil + LCP poster (first frame) so something paints fast. */}
         {!ready && (
           <div className="absolute inset-0 flex items-center justify-center bg-[#05101c]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={posterUrl()}
+              src={posterUrl("day")}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 h-full w-full object-cover opacity-40"
