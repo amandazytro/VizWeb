@@ -119,7 +119,12 @@ export default function Hud() {
       <div className="absolute bottom-6 left-6">
         <button
           type="button"
-          className="pointer-events-auto flex flex-col items-center gap-1 text-white/75 transition hover:text-white"
+          onClick={() => openPanel("gallery")}
+          aria-pressed={panel === "gallery"}
+          className={[
+            "pointer-events-auto flex flex-col items-center gap-1 transition",
+            panel === "gallery" ? "text-white" : "text-white/75 hover:text-white",
+          ].join(" ")}
         >
           <MediaIcon className="h-5 w-5" />
           <span className="text-[10px] tracking-[0.18em]">Media</span>
