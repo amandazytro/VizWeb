@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useExperience, moodToTime } from "@/lib/store";
 
 /* — minimal inline icons — */
 function SunIcon({ className = "" }: { className?: string }) {
@@ -68,16 +69,9 @@ const ICONS: Record<Nav, (p: { className?: string }) => ReactNode> = {
   Decored: SofaIcon,
 };
 
-function timeLabel(v: number): string {
-  // Map slider 0..100 → 05:00..21:00.
-  const mins = Math.round((5 + (v / 100) * 16) * 60);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 export default function Hud() {
-  const [time, setTime] = useState(46); // ≈12:20 like the reference
+  const dayNight = useExperience((s) => s.dayNight);
+  const setDayNight = useExperience((s) => s.setDayNight);
   const [active, setActive] = useState<Nav>("Explore");
 
   return (
@@ -89,15 +83,15 @@ export default function Hud() {
             <CompassIcon className="h-3.5 w-3.5" />
             NW
           </span>
-          <span className="tabular-nums text-white">{timeLabel(time)}</span>
+          <span className="tabular-nums text-white">{moodToTime(dayNight)}</span>
           <span className="flex items-center gap-2">
             <SunIcon className="h-4 w-4 text-amber-200/90" />
             <input
               type="range"
               min={0}
               max={100}
-              value={time}
-              onChange={(e) => setTime(Number(e.target.value))}
+              value={Math.round(dayNight * 100)}
+              onChange={(e) => setDayNight(Number(e.target.value) / 100)}
               aria-label="Time of day"
               className="zy-range h-1 w-32 cursor-pointer appearance-none rounded-full bg-white/25"
             />
