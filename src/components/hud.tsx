@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useExperience, moodToTime } from "@/lib/store";
 
 /* — minimal inline icons — */
@@ -72,7 +72,21 @@ const ICONS: Record<Nav, (p: { className?: string }) => ReactNode> = {
 export default function Hud() {
   const dayNight = useExperience((s) => s.dayNight);
   const setDayNight = useExperience((s) => s.setDayNight);
+  const panel = useExperience((s) => s.panel);
+  const openPanel = useExperience((s) => s.openPanel);
+  const closePanel = useExperience((s) => s.closePanel);
   const [active, setActive] = useState<Nav>("Explore");
+
+  // Keep nav highlight in sync when the panel is closed elsewhere (Esc / ✕).
+  useEffect(() => {
+    if (panel === "none" && active === "Apartments") setActive("Explore");
+  }, [panel, active]);
+
+  const onNav = (item: Nav) => {
+    setActive(item);
+    if (item === "Apartments") openPanel("apartments");
+    else closePanel();
+  };
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none">
@@ -122,7 +136,7 @@ export default function Hud() {
               <li key={item}>
                 <button
                   type="button"
-                  onClick={() => setActive(item)}
+                  onClick={() => onNav(item)}
                   aria-pressed={isActive}
                   className="group flex flex-col items-center gap-1.5"
                 >

@@ -1,12 +1,14 @@
 import SmoothScroll from "@/components/smooth-scroll";
 import HeroSequence from "@/components/hero-sequence";
 import Hud from "@/components/hud";
+import ApartmentsOverlay from "@/components/apartments/apartments-overlay";
 
 export default function Home() {
   return (
     <>
       <SmoothScroll />
       <Hud />
+      <ApartmentsOverlay />
 
       <main className="relative">
         <HeroSequence />
