@@ -245,15 +245,16 @@ export default function ApartmentsOverlay() {
                 map(u1, v1),
                 map(u0, v1),
               ];
-              const fillOpacity = !on ? 0 : isSel ? 0.95 : isHov ? 0.85 : 0;
+              // Visible by default; hover/selection lights the unit up.
+              const fillOpacity = !on ? 0.07 : isSel ? 0.95 : isHov ? 0.9 : 0.5;
               return (
                 <polygon
                   key={u.id}
                   points={insetQuad(corners, 1.2)}
                   fill={STATUS_META[u.status].dot}
                   fillOpacity={fillOpacity}
-                  stroke={lit ? "#fff" : "transparent"}
-                  strokeWidth={isSel ? 2 : 1.2}
+                  stroke={lit ? "#fff" : "rgba(255,255,255,0.22)"}
+                  strokeWidth={isSel ? 2 : lit ? 1.4 : 0.6}
                   className={clickable ? "cursor-pointer" : "cursor-not-allowed"}
                   style={{
                     // 'all' hit-tests the geometry even when the fill is invisible,
@@ -414,7 +415,7 @@ export default function ApartmentsOverlay() {
 
       {/* detail drawer */}
       {selected && (
-        <aside className="pointer-events-auto absolute inset-y-0 right-0 w-full max-w-sm overflow-y-auto border-l border-white/10 bg-[#060f1c]/95 px-6 py-6 backdrop-blur-sm">
+        <aside className="pointer-events-auto absolute inset-y-0 right-0 w-full max-w-sm overflow-y-auto border-l border-white/15 bg-[#0a1726]/35 px-6 py-6 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs tracking-widest text-white/45">UNIT</p>
