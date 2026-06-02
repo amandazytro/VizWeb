@@ -4,20 +4,20 @@ import { useEffect, useMemo, useState } from "react";
 import { useExperience } from "@/lib/store";
 import { CATEGORIES, SHOTS, type Category } from "@/lib/gallery";
 
-type Tab = "All" | Category;
-const TABS: Tab[] = ["All", ...CATEGORIES];
+type Tab = "Todas" | Category;
+const TABS: Tab[] = ["Todas", ...CATEGORIES];
 
 export default function GalleryOverlay() {
   const panel = useExperience((s) => s.panel);
   const closePanel = useExperience((s) => s.closePanel);
   const open = panel === "gallery";
 
-  const [tab, setTab] = useState<Tab>("All");
+  const [tab, setTab] = useState<Tab>("Todas");
   const [index, setIndex] = useState<number | null>(null); // lightbox index
   const [zoom, setZoom] = useState(false);
 
   const shots = useMemo(
-    () => (tab === "All" ? SHOTS : SHOTS.filter((s) => s.category === tab)),
+    () => (tab === "Todas" ? SHOTS : SHOTS.filter((s) => s.category === tab)),
     [tab]
   );
 
@@ -37,7 +37,7 @@ export default function GalleryOverlay() {
   // Reset when closing the panel; clamp lightbox when switching tabs.
   useEffect(() => {
     if (!open) {
-      setTab("All");
+      setTab("Todas");
       close();
     }
   }, [open]);
@@ -74,16 +74,16 @@ export default function GalleryOverlay() {
       {/* header */}
       <header className="flex items-center justify-between px-6 py-4">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-sm tracking-[0.3em] text-white/90">GALLERY</h2>
-          <span className="text-xs text-white/45">{shots.length} images</span>
+          <h2 className="text-sm tracking-[0.3em] text-white/90">GALERIA</h2>
+          <span className="text-xs text-white/45">{shots.length} imagens</span>
         </div>
         <button
           type="button"
           onClick={closePanel}
-          aria-label="Close gallery"
+          aria-label="Fechar galeria"
           className="rounded-full border border-white/15 px-3 py-1 text-xs text-white/80 transition hover:bg-white/10"
         >
-          Close ✕
+          Fechar ✕
         </button>
       </header>
 
@@ -147,10 +147,10 @@ export default function GalleryOverlay() {
                 e.stopPropagation();
                 close();
               }}
-              aria-label="Close image"
+              aria-label="Fechar imagem"
               className="rounded-full border border-white/20 px-3 py-1 text-xs hover:bg-white/10"
             >
-              Close ✕
+              Fechar ✕
             </button>
           </div>
 
@@ -162,7 +162,7 @@ export default function GalleryOverlay() {
                 e.stopPropagation();
                 step(-1);
               }}
-              aria-label="Previous"
+              aria-label="Anterior"
               className="absolute left-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10"
             >
               ‹
@@ -189,7 +189,7 @@ export default function GalleryOverlay() {
                 e.stopPropagation();
                 step(1);
               }}
-              aria-label="Next"
+              aria-label="Próxima"
               className="absolute right-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/20 text-white/80 transition hover:bg-white/10"
             >
               ›
@@ -197,7 +197,7 @@ export default function GalleryOverlay() {
           </div>
 
           <p className="py-3 text-center text-[10px] uppercase tracking-[0.3em] text-white/35">
-            ← → to browse · click to {zoom ? "zoom out" : "zoom in"} · Esc to close
+            ← → navegar · clique para {zoom ? "reduzir" : "ampliar"} · Esc para fechar
           </p>
         </div>
       )}
