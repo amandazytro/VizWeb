@@ -2,8 +2,8 @@
 // stable across renders. Swap for real data (Supabase) in the production build.
 
 export type UnitStatus = "available" | "reserved" | "sold" | "highlight";
-export type Orientation = "N" | "S" | "E" | "W";
-export type ViewType = "City" | "Park" | "Ocean" | "Mountain";
+export type Orientation = "N" | "S" | "L" | "O";
+export type ViewType = "Cidade" | "Parque" | "Mar" | "Montanha";
 
 export type Unit = {
   id: string;
@@ -21,8 +21,8 @@ export type Unit = {
 };
 
 const LINES = ["A", "B"] as const;
-const ORIENT: Orientation[] = ["N", "S", "E", "W"];
-const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
+const ORIENT: Orientation[] = ["N", "S", "L", "O"];
+const VIEWS: ViewType[] = ["Cidade", "Parque", "Mar", "Montanha"];
 
 // Small deterministic PRNG.
 function mulberry(seed: number) {
@@ -79,10 +79,10 @@ export const STATUS_META: Record<
   UnitStatus,
   { label: string; dot: string; ring: string }
 > = {
-  available: { label: "Available", dot: "#34d399", ring: "ring-emerald-400/60" },
-  reserved: { label: "Reserved", dot: "#fbbf24", ring: "ring-amber-400/60" },
-  sold: { label: "Sold", dot: "#6b7280", ring: "ring-gray-400/40" },
-  highlight: { label: "Highlight", dot: "#7c5cff", ring: "ring-accent/70" },
+  available: { label: "Disponível", dot: "#34d399", ring: "ring-emerald-400/60" },
+  reserved: { label: "Reservado", dot: "#fbbf24", ring: "ring-amber-400/60" },
+  sold: { label: "Vendido", dot: "#6b7280", ring: "ring-gray-400/40" },
+  highlight: { label: "Destaque", dot: "#7c5cff", ring: "ring-accent/70" },
 };
 
 export type Filters = {

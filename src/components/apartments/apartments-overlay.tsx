@@ -19,8 +19,8 @@ import {
 } from "@/lib/apartments";
 import { plantaFor } from "@/lib/plantas";
 
-const ORIENTATIONS: Orientation[] = ["N", "S", "E", "W"];
-const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
+const ORIENTATIONS: Orientation[] = ["N", "S", "L", "O"];
+const VIEWS: ViewType[] = ["Cidade", "Parque", "Mar", "Montanha"];
 
 // Hero image natural size (public/hero/diurno.webp). The tower facade is a
 // perspective QUAD (4 corners in image-percent); a uniform floor×line grid is
@@ -269,7 +269,7 @@ export default function ApartmentsOverlay() {
                   onMouseEnter={() => on && setHover(u)}
                   onMouseLeave={() => setHover((h) => (h?.id === u.id ? null : h))}
                   onClick={() => clickable && on && setSelected(u)}
-                  aria-label={`Unit ${u.label} — ${STATUS_META[u.status].label}`}
+                  aria-label={`Unidade ${u.label} — ${STATUS_META[u.status].label}`}
                 />
               );
             })
@@ -280,8 +280,8 @@ export default function ApartmentsOverlay() {
       {/* header: legend + count + close + filters toggle */}
       <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between px-6 py-4">
         <div className="flex items-baseline gap-3">
-          <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">AVAILABILITY</h2>
-          <span className="text-xs text-white/70">{matched.length}/{UNITS.length} units</span>
+          <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">DISPONIBILIDADE</h2>
+          <span className="text-xs text-white/70">{matched.length}/{UNITS.length} unidades</span>
         </div>
         <div className="flex items-center gap-3">
           <ul className="hidden items-center gap-4 sm:flex">
@@ -297,15 +297,15 @@ export default function ApartmentsOverlay() {
             onClick={() => setShowFilters((v) => !v)}
             className="rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/85 backdrop-blur-sm transition hover:bg-white/10"
           >
-            Filters
+            Filtros
           </button>
           <button
             type="button"
             onClick={closePanel}
-            aria-label="Close availability"
+            aria-label="Fechar disponibilidade"
             className="rounded-full border border-white/20 bg-black/30 px-3 py-1 text-xs text-white/85 backdrop-blur-sm transition hover:bg-white/10"
           >
-            Close ✕
+            Fechar ✕
           </button>
         </div>
       </header>
@@ -313,9 +313,9 @@ export default function ApartmentsOverlay() {
       {/* hover summary */}
       {hover && (
         <div className="pointer-events-none absolute left-6 top-20 rounded-lg border border-white/15 bg-[#0a1628]/95 px-4 py-3 text-sm shadow-xl">
-          <p className="font-semibold text-white">Unit {hover.label}</p>
+          <p className="font-semibold text-white">Unidade {hover.label}</p>
           <p className="text-white/60">
-            {hover.area} m² · {hover.bedrooms} bd · {hover.suites} suite
+            {hover.area} m² · {hover.bedrooms} dorm · {hover.suites} suíte
           </p>
           <p className="mt-1 font-medium text-accent">{formatBRL(hover.price)}</p>
           <p className="text-xs text-white/45">{STATUS_META[hover.status].label}</p>
@@ -328,7 +328,7 @@ export default function ApartmentsOverlay() {
           <div className="space-y-6">
             <div>
               <label className="mb-2 block text-xs tracking-widest text-white/50">
-                MAX PRICE — {formatBRL(filters.priceMax)}
+                PREÇO MÁX — {formatBRL(filters.priceMax)}
               </label>
               <input
                 type="range"
@@ -341,7 +341,7 @@ export default function ApartmentsOverlay() {
               />
             </div>
             <div>
-              <p className="mb-2 text-xs tracking-widest text-white/50">BEDROOMS</p>
+              <p className="mb-2 text-xs tracking-widest text-white/50">DORMITÓRIOS</p>
               <div className="flex flex-wrap gap-2">
                 {[1, 2, 3, 4].map((n) => (
                   <Chip key={n} active={filters.bedrooms === n} onClick={() => toggle("bedrooms", n)}>
@@ -351,7 +351,7 @@ export default function ApartmentsOverlay() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs tracking-widest text-white/50">SUITES</p>
+              <p className="mb-2 text-xs tracking-widest text-white/50">SUÍTES</p>
               <div className="flex flex-wrap gap-2">
                 {[1, 2, 3].map((n) => (
                   <Chip key={n} active={filters.suites === n} onClick={() => toggle("suites", n)}>
@@ -362,7 +362,7 @@ export default function ApartmentsOverlay() {
             </div>
             <div>
               <p className="mb-2 text-xs tracking-widest text-white/50">
-                FLOORS — {filters.floorMin} to {filters.floorMax}
+                ANDARES — {filters.floorMin} a {filters.floorMax}
               </p>
               <div className="flex items-center gap-2">
                 <input
@@ -384,7 +384,7 @@ export default function ApartmentsOverlay() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs tracking-widest text-white/50">ORIENTATION</p>
+              <p className="mb-2 text-xs tracking-widest text-white/50">ORIENTAÇÃO</p>
               <div className="flex flex-wrap gap-2">
                 {ORIENTATIONS.map((o) => (
                   <Chip key={o} active={filters.orientation === o} onClick={() => toggle("orientation", o)}>
@@ -394,7 +394,7 @@ export default function ApartmentsOverlay() {
               </div>
             </div>
             <div>
-              <p className="mb-2 text-xs tracking-widest text-white/50">VIEW</p>
+              <p className="mb-2 text-xs tracking-widest text-white/50">VISTA</p>
               <div className="flex flex-wrap gap-2">
                 {VIEWS.map((v) => (
                   <Chip key={v} active={filters.view === v} onClick={() => toggle("view", v)}>
@@ -408,7 +408,7 @@ export default function ApartmentsOverlay() {
               onClick={() => setFilters(DEFAULT_FILTERS)}
               className="text-xs text-white/45 underline-offset-4 hover:text-white hover:underline"
             >
-              Reset filters
+              Limpar filtros
             </button>
           </div>
         </aside>
@@ -419,7 +419,7 @@ export default function ApartmentsOverlay() {
         <aside className="pointer-events-auto absolute inset-y-0 right-0 w-full max-w-sm overflow-y-auto border-l border-white/15 bg-[#0a1726]/35 px-6 py-6 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs tracking-widest text-white/45">UNIT</p>
+              <p className="text-xs tracking-widest text-white/45">UNIDADE</p>
               <h3 className="text-3xl font-light text-white">{selected.label}</h3>
             </div>
             <span
@@ -434,34 +434,34 @@ export default function ApartmentsOverlay() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={plantaFor(selected.id)}
-              alt={`Humanized floorplan — unit ${selected.label}`}
+              alt={`Planta humanizada — unidade ${selected.label}`}
               className="h-full w-full object-contain"
             />
           </div>
 
           <div className="mt-5">
-            <FieldRow k="Floor" v={String(selected.floor)} />
-            <FieldRow k="Area" v={`${selected.area} m²`} />
-            <FieldRow k="Bedrooms" v={String(selected.bedrooms)} />
-            <FieldRow k="Suites" v={String(selected.suites)} />
-            <FieldRow k="Parking" v={String(selected.parking)} />
-            <FieldRow k="Orientation" v={selected.orientation} />
-            <FieldRow k="View" v={selected.view} />
-            <FieldRow k="Price" v={formatBRL(selected.price)} />
+            <FieldRow k="Andar" v={String(selected.floor)} />
+            <FieldRow k="Área" v={`${selected.area} m²`} />
+            <FieldRow k="Dormitórios" v={String(selected.bedrooms)} />
+            <FieldRow k="Suítes" v={String(selected.suites)} />
+            <FieldRow k="Vagas" v={String(selected.parking)} />
+            <FieldRow k="Orientação" v={selected.orientation} />
+            <FieldRow k="Vista" v={selected.view} />
+            <FieldRow k="Preço" v={formatBRL(selected.price)} />
           </div>
 
           <button
             type="button"
             className="mt-6 w-full rounded-full bg-accent py-2.5 text-sm font-medium text-white transition hover:brightness-110"
           >
-            Request contact
+            Solicitar contato
           </button>
           <button
             type="button"
             onClick={() => setSelected(null)}
             className="mt-2 w-full text-xs text-white/45 hover:text-white"
           >
-            Back to availability
+            Voltar à disponibilidade
           </button>
         </aside>
       )}

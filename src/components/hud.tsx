@@ -63,6 +63,12 @@ function MediaIcon({ className = "" }: { className?: string }) {
 const HORIZON = ["Explore", "Apartments", "Decored"] as const;
 type Nav = (typeof HORIZON)[number];
 
+const NAV_LABEL: Record<Nav, string> = {
+  Explore: "Explorar",
+  Apartments: "Apartamentos",
+  Decored: "Decorado",
+};
+
 const ICONS: Record<Nav, (p: { className?: string }) => ReactNode> = {
   Explore: ExploreIcon,
   Apartments: BuildingIcon,
@@ -95,7 +101,7 @@ export default function Hud() {
         <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-[var(--hud-border)] bg-[var(--hud)] px-4 py-2 text-[11px] tracking-wide text-white/85 backdrop-blur-md">
           <span className="flex items-center gap-1.5 text-white/70">
             <CompassIcon className="h-3.5 w-3.5" />
-            NW
+            NO
           </span>
           <span className="tabular-nums text-white">{moodToTime(dayNight)}</span>
           <span className="flex items-center gap-2">
@@ -106,12 +112,12 @@ export default function Hud() {
               max={100}
               value={Math.round(dayNight * 100)}
               onChange={(e) => setDayNight(Number(e.target.value) / 100)}
-              aria-label="Time of day"
+              aria-label="Hora do dia"
               className="zy-range h-1 w-32 cursor-pointer appearance-none rounded-full bg-white/25"
             />
             <MoonIcon className="h-4 w-4 text-slate-200/80" />
           </span>
-          <span className="text-white/60">Summer</span>
+          <span className="text-white/60">Verão</span>
         </div>
       </div>
 
@@ -127,7 +133,7 @@ export default function Hud() {
           ].join(" ")}
         >
           <MediaIcon className="h-5 w-5" />
-          <span className="text-[10px] tracking-[0.18em]">Media</span>
+          <span className="text-[10px] tracking-[0.18em]">Galeria</span>
         </button>
       </div>
 
@@ -161,7 +167,7 @@ export default function Hud() {
                       isActive ? "text-white" : "text-white/55 group-hover:text-white/80",
                     ].join(" ")}
                   >
-                    {item}
+                    {NAV_LABEL[item]}
                   </span>
                 </button>
               </li>
@@ -173,7 +179,7 @@ export default function Hud() {
       {/* ── Scroll hint (fades as user scrolls is handled by hero; static here) ── */}
       <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
         <span className="text-[10px] uppercase tracking-[0.4em] text-white/45">
-          Scroll · day → night
+          Role · dia → noite
         </span>
       </div>
     </div>
