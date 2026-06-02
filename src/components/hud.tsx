@@ -63,9 +63,13 @@ function ExploreIcon({ className = "" }: { className?: string }) {
   );
 }
 function BuildingIcon({ className = "" }: { className?: string }) {
+  // Twin-slab tower (matches the development), with floor windows.
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5 21V5l8-2v18M19 21V9l-6-2M8 8h0M8 11h0M8 14h0M16 12h0M16 15h0" />
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="3.5" width="6" height="17" rx="0.8" />
+      <rect x="13" y="3.5" width="6" height="17" rx="0.8" />
+      <path d="M5 20.5h14" />
+      <path d="M7 7h2M7 10h2M7 13h2M7 16h2M15 7h2M15 10h2M15 13h2M15 16h2" />
     </svg>
   );
 }
