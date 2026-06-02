@@ -20,7 +20,7 @@ export type Unit = {
   view: ViewType;
 };
 
-const LINES = ["A", "B", "C"] as const;
+const LINES = ["A", "B"] as const;
 const ORIENT: Orientation[] = ["N", "S", "E", "W"];
 const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
 
@@ -56,7 +56,7 @@ function buildUnits(): Unit[] {
 
       units.push({
         id: `${f}${line}`,
-        label: `${f}${line === "A" ? "01" : line === "B" ? "02" : "03"}`,
+        label: `${f}${line === "A" ? "01" : "02"}`,
         floor: f,
         line,
         area,

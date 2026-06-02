@@ -38,14 +38,14 @@ type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
 // rainbow-annotated render (same composition as diurno.webp).
 const FACES: { quad: Quad; lines: string[] }[] = [
   {
-    // left tower slab (near-frontal)
+    // left tower slab — one column of units (no internal division)
     quad: { TL: [38.0, 16.0], TR: [49.4, 16.0], BR: [49.4, 88.0], BL: [38.0, 88.0] },
     lines: ["A"],
   },
   {
-    // right tower slab
+    // right tower slab — one column, mirrors the left
     quad: { TL: [50.2, 16.0], TR: [62.0, 16.0], BR: [62.0, 88.0], BL: [50.2, 88.0] },
-    lines: ["B", "C"],
+    lines: ["B"],
   },
 ];
 
@@ -233,6 +233,8 @@ export default function ApartmentsOverlay() {
               const on = matchedIds.has(u.id);
               const clickable = u.status !== "sold";
               const isSel = selected?.id === u.id;
+              const isHov = hover?.id === u.id;
+              const lit = isSel || isHov; // hover/selected "lights up" the unit
               const u0 = lf.col / lf.cols;
               const u1 = (lf.col + 1) / lf.cols;
               const v0 = row / ROWS;
@@ -243,19 +245,25 @@ export default function ApartmentsOverlay() {
                 map(u1, v1),
                 map(u0, v1),
               ];
+              const fillOpacity = !on ? 0 : isSel ? 0.95 : isHov ? 0.85 : 0;
               return (
                 <polygon
                   key={u.id}
                   points={insetQuad(corners, 1.2)}
                   fill={STATUS_META[u.status].dot}
-                  fillOpacity={on ? (isSel ? 0.92 : 0.6) : 0.08}
-                  stroke={isSel ? "#fff" : "rgba(255,255,255,0.25)"}
-                  strokeWidth={isSel ? 2 : 0.75}
-                  className={[
-                    on && clickable ? "pointer-events-auto" : "pointer-events-none",
-                    clickable ? "cursor-pointer" : "cursor-not-allowed",
-                  ].join(" ")}
-                  style={{ transition: "fill-opacity 150ms" }}
+                  fillOpacity={fillOpacity}
+                  stroke={lit ? "#fff" : "transparent"}
+                  strokeWidth={isSel ? 2 : 1.2}
+                  className={clickable ? "cursor-pointer" : "cursor-not-allowed"}
+                  style={{
+                    // 'all' hit-tests the geometry even when the fill is invisible,
+                    // so hovering an unlit unit still lights it up.
+                    pointerEvents: on && clickable ? "all" : "none",
+                    transition: "fill-opacity 120ms ease, stroke 120ms ease",
+                    filter: lit
+                      ? `drop-shadow(0 0 6px ${STATUS_META[u.status].dot})`
+                      : undefined,
+                  }}
                   onMouseEnter={() => on && setHover(u)}
                   onMouseLeave={() => setHover((h) => (h?.id === u.id ? null : h))}
                   onClick={() => clickable && on && setSelected(u)}
