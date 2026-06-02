@@ -194,7 +194,7 @@ export default function ApartmentsOverlay() {
   const toggleStatus = (s: UnitStatus) =>
     setFilters((f) => ({
       ...f,
-      hidden: f.hidden.includes(s) ? f.hidden.filter((x) => x !== s) : [...f.hidden, s],
+      active: f.active.includes(s) ? f.active.filter((x) => x !== s) : [...f.active, s],
     }));
 
   useEffect(() => {
@@ -266,23 +266,41 @@ export default function ApartmentsOverlay() {
         </div>
       )}
 
-      {/* status filter legend (right, below Galeria) */}
-      <div className="pointer-events-auto absolute right-6 top-24 flex flex-col gap-2.5">
+      {/* status filter legend (center-right). Off by default; click activates. */}
+      <div className="pointer-events-auto absolute right-8 top-1/2 flex -translate-y-1/2 flex-col items-start gap-3">
         {STATUS_ORDER.map((s) => {
-          const off = filters.hidden.includes(s);
+          const on = filters.active.includes(s);
           const m = STATUS_META[s];
           return (
             <button
               key={s}
               type="button"
               onClick={() => toggleStatus(s)}
+              aria-pressed={on}
               className={[
-                "flex items-center gap-2.5 rounded-full border border-white/15 bg-[#0a1726]/45 px-4 py-1.5 text-xs backdrop-blur-md transition",
-                off ? "opacity-40" : "opacity-100 hover:bg-white/10",
+                "flex items-center gap-3 rounded-full border backdrop-blur-md transition-all",
+                on
+                  ? "border-white/25 bg-[#0a1726]/65 px-5 py-2.5"
+                  : "border-white/10 bg-[#0a1726]/35 px-4 py-1.5 opacity-55 hover:opacity-90",
               ].join(" ")}
             >
-              <span className="h-3 w-3 rounded-full" style={{ background: m.dot }} />
-              <span className="text-white/90">{m.plural}</span>
+              <span
+                className="rounded-full transition-all"
+                style={{
+                  background: m.dot,
+                  width: on ? 16 : 11,
+                  height: on ? 16 : 11,
+                  boxShadow: on ? `0 0 10px ${m.dot}` : "none",
+                }}
+              />
+              <span
+                className={[
+                  "transition-all",
+                  on ? "text-base font-medium text-white" : "text-xs text-white/85",
+                ].join(" ")}
+              >
+                {m.plural}
+              </span>
             </button>
           );
         })}
