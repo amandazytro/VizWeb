@@ -278,27 +278,17 @@ export default function ApartmentsOverlay() {
               onClick={() => toggleStatus(s)}
               aria-pressed={on}
               className={[
-                "flex items-center gap-3 rounded-full border backdrop-blur-md transition-all",
+                "flex items-center gap-3 rounded-full border px-5 py-2.5 backdrop-blur-md transition",
                 on
-                  ? "border-white/25 bg-[#0a1726]/65 px-5 py-2.5"
-                  : "border-white/10 bg-[#0a1726]/35 px-4 py-1.5 opacity-55 hover:opacity-90",
+                  ? "border-white/25 bg-[#0a1726]/70"
+                  : "border-white/10 bg-[#0a1726]/35 opacity-55 hover:opacity-90",
               ].join(" ")}
             >
               <span
-                className="rounded-full transition-all"
-                style={{
-                  background: m.dot,
-                  width: on ? 16 : 11,
-                  height: on ? 16 : 11,
-                  boxShadow: on ? `0 0 10px ${m.dot}` : "none",
-                }}
+                className="h-3.5 w-3.5 rounded-full transition"
+                style={{ background: m.dot, boxShadow: on ? `0 0 10px ${m.dot}` : "none" }}
               />
-              <span
-                className={[
-                  "transition-all",
-                  on ? "text-base font-medium text-white" : "text-xs text-white/85",
-                ].join(" ")}
-              >
+              <span className={on ? "text-sm font-medium text-white" : "text-sm text-white/80"}>
                 {m.plural}
               </span>
             </button>
@@ -306,17 +296,19 @@ export default function ApartmentsOverlay() {
         })}
       </div>
 
-      {/* bottom-left: Andar + Dormitórios */}
-      <Card className="absolute bottom-6 left-6 w-60">
-        <Slider
-          label="ANDAR"
-          value={filters.floorMin}
-          display={`${filters.floorMin}º +`}
-          min={FLOOR_MIN}
-          max={FLOOR_MAX}
-          onChange={(v) => set("floorMin", v)}
-        />
-        <div className="mt-4">
+      {/* bottom-left: Andar (card) + Dormitórios (card) */}
+      <div className="absolute bottom-6 left-6 flex w-60 flex-col gap-3">
+        <Card>
+          <Slider
+            label="ANDAR"
+            value={filters.floorMin}
+            display={`${filters.floorMin}º +`}
+            min={FLOOR_MIN}
+            max={FLOOR_MAX}
+            onChange={(v) => set("floorMin", v)}
+          />
+        </Card>
+        <Card>
           <p className="mb-2 text-[11px] tracking-widest text-white/55">DORMITÓRIOS</p>
           <div className="flex gap-2">
             {[1, 2, 3].map((n) => (
@@ -335,29 +327,33 @@ export default function ApartmentsOverlay() {
               </button>
             ))}
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
 
-      {/* bottom-right: Valor + Metragem */}
-      <Card className="absolute bottom-6 right-6 w-64 space-y-4">
-        <Slider
-          label="VALOR"
-          value={filters.priceMax}
-          display={formatBRL(filters.priceMax)}
-          min={PRICE_FLOOR}
-          max={PRICE_CAP}
-          step={10000}
-          onChange={(v) => set("priceMax", v)}
-        />
-        <Slider
-          label="METRAGEM"
-          value={filters.areaMax}
-          display={`${filters.areaMax} m²`}
-          min={AREA_FLOOR}
-          max={AREA_CAP}
-          onChange={(v) => set("areaMax", v)}
-        />
-      </Card>
+      {/* bottom-right: Valor (card) + Metragem (card) */}
+      <div className="absolute bottom-6 right-6 flex w-64 flex-col gap-3">
+        <Card>
+          <Slider
+            label="VALOR"
+            value={filters.priceMax}
+            display={formatBRL(filters.priceMax)}
+            min={PRICE_FLOOR}
+            max={PRICE_CAP}
+            step={10000}
+            onChange={(v) => set("priceMax", v)}
+          />
+        </Card>
+        <Card>
+          <Slider
+            label="METRAGEM"
+            value={filters.areaMax}
+            display={`${filters.areaMax} m²`}
+            min={AREA_FLOOR}
+            max={AREA_CAP}
+            onChange={(v) => set("areaMax", v)}
+          />
+        </Card>
+      </div>
 
       {/* detail drawer */}
       {selected && (
