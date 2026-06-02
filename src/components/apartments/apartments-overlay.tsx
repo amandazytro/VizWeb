@@ -17,6 +17,7 @@ import {
   type Orientation,
   type ViewType,
 } from "@/lib/apartments";
+import { plantaFor } from "@/lib/plantas";
 
 const ORIENTATIONS: Orientation[] = ["N", "S", "E", "W"];
 const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
@@ -231,7 +232,7 @@ export default function ApartmentsOverlay() {
               if (!lf) return null;
               const map = facade.maps[lf.face];
               const on = matchedIds.has(u.id);
-              const clickable = u.status !== "sold";
+              const clickable = true; // every unit is interactive (incl. sold)
               const isSel = selected?.id === u.id;
               const isHov = hover?.id === u.id;
               const lit = isSel || isHov; // hover/selected "lights up" the unit
@@ -429,17 +430,13 @@ export default function ApartmentsOverlay() {
             </span>
           </div>
 
-          <div className="mt-5 aspect-[4/3] w-full rounded-lg border border-white/10 bg-white/[0.03] p-3">
-            <svg viewBox="0 0 200 150" className="h-full w-full text-white/25">
-              <rect x="6" y="6" width="188" height="138" fill="none" stroke="currentColor" />
-              <line x1="92" y1="6" x2="92" y2="80" stroke="currentColor" />
-              <line x1="92" y1="80" x2="194" y2="80" stroke="currentColor" />
-              <line x1="6" y1="96" x2="92" y2="96" stroke="currentColor" />
-              <rect x="120" y="100" width="40" height="30" fill="none" stroke="currentColor" />
-              <text x="100" y="145" fill="currentColor" fontSize="8" textAnchor="middle">
-                Floorplan (placeholder)
-              </text>
-            </svg>
+          <div className="mt-5 aspect-square w-full overflow-hidden rounded-lg border border-white/15 bg-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={plantaFor(selected.id)}
+              alt={`Humanized floorplan — unit ${selected.label}`}
+              className="h-full w-full object-contain"
+            />
           </div>
 
           <div className="mt-5">
