@@ -91,7 +91,7 @@ export type Filters = {
   bedrooms: number | null;
   priceMax: number;
   areaMax: number;
-  hidden: UnitStatus[]; // statuses toggled off in the legend
+  active: UnitStatus[]; // selected statuses; empty = show all
 };
 
 export const PRICE_CAP = Math.max(...UNITS.map((u) => u.price));
@@ -106,11 +106,11 @@ export const DEFAULT_FILTERS: Filters = {
   bedrooms: null,
   priceMax: PRICE_CAP,
   areaMax: AREA_CAP,
-  hidden: [],
+  active: [],
 };
 
 export function matches(u: Unit, f: Filters): boolean {
-  if (f.hidden.includes(u.status)) return false;
+  if (f.active.length > 0 && !f.active.includes(u.status)) return false;
   if (u.floor < f.floorMin) return false;
   if (f.bedrooms != null && u.bedrooms !== f.bedrooms) return false;
   if (u.price > f.priceMax) return false;
