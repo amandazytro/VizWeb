@@ -88,8 +88,11 @@ export const STATUS_ORDER: UnitStatus[] = ["sold", "available", "reserved"];
 
 export type Filters = {
   floorMin: number;
+  floorMax: number;
   bedrooms: number | null;
+  priceMin: number;
   priceMax: number;
+  areaMin: number;
   areaMax: number;
   active: UnitStatus[]; // selected statuses; empty = show all
 };
@@ -103,18 +106,21 @@ export const AREA_FLOOR = Math.min(...UNITS.map((u) => u.area));
 
 export const DEFAULT_FILTERS: Filters = {
   floorMin: FLOOR_MIN,
+  floorMax: FLOOR_MAX,
   bedrooms: null,
+  priceMin: PRICE_FLOOR,
   priceMax: PRICE_CAP,
+  areaMin: AREA_FLOOR,
   areaMax: AREA_CAP,
   active: [],
 };
 
 export function matches(u: Unit, f: Filters): boolean {
   if (f.active.length > 0 && !f.active.includes(u.status)) return false;
-  if (u.floor < f.floorMin) return false;
+  if (u.floor < f.floorMin || u.floor > f.floorMax) return false;
   if (f.bedrooms != null && u.bedrooms !== f.bedrooms) return false;
-  if (u.price > f.priceMax) return false;
-  if (u.area > f.areaMax) return false;
+  if (u.price < f.priceMin || u.price > f.priceMax) return false;
+  if (u.area < f.areaMin || u.area > f.areaMax) return false;
   return true;
 }
 
