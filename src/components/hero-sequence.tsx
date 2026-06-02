@@ -1,64 +1,119 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useExperience } from "@/lib/store";
 
-const DAY_SRC = "/hero/diurno.webp";
-const NIGHT_SRC = "/hero/noturno.webp";
+// Explore frame sequence extracted from the client video (Refs/0001-1495.mp4),
+// subsampled to webp. Scroll/drag scrubs forward and backward smoothly.
+const COUNT = 299;
+const PAD = 4;
+const BASE = "/frames/explore";
+const url = (n: number) =>
+  `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
-// Gesture sensitivity: wheel delta → mood. ~10 notches spans full day→night.
-const WHEEL_SENS = 1 / 1200;
-const TOUCH_SENS = 1 / 600;
+// Gesture sensitivity: frames advanced per wheel/touch delta.
+const WHEEL_SENS = 0.12;
+const TOUCH_SENS = 0.25;
+const EASE = 0.18; // smoothing toward the scroll target
 
 export default function HeroSequence() {
   const rootRef = useRef<HTMLElement>(null);
-  const nightRef = useRef<HTMLImageElement>(null);
-  const progress = useRef(0); // 0 = day, 1 = night
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const target = useRef(0); // desired frame (float)
+  const current = useRef(0); // eased frame (float)
+  const drawn = useRef(-1);
+  const raf = useRef(0);
   const touchY = useRef<number | null>(null);
 
-  const [loaded, setLoaded] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [ready, setReady] = useState(false);
   const [reduce, setReduce] = useState(false);
-
-  const setDayNight = useExperience((s) => s.setDayNight);
 
   useEffect(() => {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  // Preload both stills.
+  // Preload the frame sequence.
   useEffect(() => {
-    let done = 0;
+    if (reduce) return;
     let cancelled = false;
-    const onOne = () => {
-      if (cancelled) return;
-      if (++done >= 2) setLoaded(true);
-    };
-    for (const src of [DAY_SRC, NIGHT_SRC]) {
+    let loaded = 0;
+    const imgs: HTMLImageElement[] = [];
+    for (let i = 1; i <= COUNT; i++) {
       const img = new Image();
-      img.onload = img.onerror = onOne;
-      img.src = src;
+      img.decoding = "async";
+      img.src = url(i);
+      img.onload = img.onerror = () => {
+        if (cancelled) return;
+        loaded++;
+        setProgress(loaded / COUNT);
+        if (loaded === COUNT) {
+          imagesRef.current = imgs;
+          setReady(true);
+        }
+      };
+      imgs[i - 1] = img;
     }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reduce]);
 
-  // Reflect mood onto the night layer; keep gesture progress in sync with slider.
-  useEffect(() => {
-    const apply = (v: number) => {
-      progress.current = v;
-      if (nightRef.current) nightRef.current.style.opacity = String(v);
-    };
-    apply(useExperience.getState().dayNight);
-    return useExperience.subscribe((s) => apply(s.dayNight));
-  }, []);
+  const draw = (frame: number) => {
+    const canvas = canvasRef.current;
+    const img = imagesRef.current[frame];
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const ir = img.width / img.height;
+    const cr = cw / ch;
+    let dw = cw;
+    let dh = ch;
+    if (cr > ir) dh = cw / ir;
+    else dw = ch * ir;
+    ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    drawn.current = frame;
+  };
 
-  // Wheel + touch drive day → night without any page scroll.
+  const resize = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.floor(window.innerWidth * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+    drawn.current = -1;
+    draw(Math.round(current.current));
+  };
+
+  // Eased scrub loop — runs only while catching up to the target.
+  const tick = () => {
+    const diff = target.current - current.current;
+    if (Math.abs(diff) < 0.05) {
+      current.current = target.current;
+      raf.current = 0;
+    } else {
+      current.current += diff * EASE;
+      raf.current = requestAnimationFrame(tick);
+    }
+    const f = Math.round(current.current);
+    if (f !== drawn.current) draw(f);
+  };
+  const kick = () => {
+    if (!raf.current) raf.current = requestAnimationFrame(tick);
+  };
+
   useEffect(() => {
-    if (reduce) return;
-    const advance = (delta: number) => {
-      const next = Math.min(1, Math.max(0, progress.current + delta));
-      if (next !== progress.current) setDayNight(next);
+    if (!ready || reduce) return;
+    resize();
+    draw(0);
+
+    const advance = (d: number) => {
+      target.current = Math.min(COUNT - 1, Math.max(0, target.current + d));
+      kick();
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -70,49 +125,69 @@ export default function HeroSequence() {
     const onTouchMove = (e: TouchEvent) => {
       if (touchY.current == null) return;
       const y = e.touches[0]?.clientY ?? touchY.current;
-      const dy = touchY.current - y; // swipe up → toward night
+      advance((touchY.current - y) * TOUCH_SENS);
       touchY.current = y;
-      advance(dy * TOUCH_SENS);
     };
+
     const el = rootRef.current ?? window;
     el.addEventListener("wheel", onWheel as EventListener, { passive: false });
     el.addEventListener("touchstart", onTouchStart as EventListener, { passive: true });
     el.addEventListener("touchmove", onTouchMove as EventListener, { passive: true });
+    window.addEventListener("resize", resize);
     return () => {
       el.removeEventListener("wheel", onWheel as EventListener);
       el.removeEventListener("touchstart", onTouchStart as EventListener);
       el.removeEventListener("touchmove", onTouchMove as EventListener);
+      window.removeEventListener("resize", resize);
+      if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, [reduce, setDayNight]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, reduce]);
+
+  if (reduce) {
+    return (
+      <section
+        className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
+        aria-label="Empreendimento"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url(1)}
+          alt="Torre do empreendimento"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </section>
+    );
+  }
 
   return (
     <section
       ref={rootRef}
       className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
-      aria-label="Empreendimento — role ou arraste do dia para a noite"
+      aria-label="Empreendimento — role para percorrer o vídeo"
     >
-      {/* day base (LCP) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={DAY_SRC}
-        alt="Torre premium do empreendimento durante o dia"
-        fetchPriority="high"
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      {/* night layer, cross-faded by mood/gesture */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        ref={nightRef}
-        src={NIGHT_SRC}
-        alt=""
-        aria-hidden="true"
-        style={{ opacity: 0 }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
 
-      {!loaded && (
+      {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#05101c]">
-          <span className="text-xs tracking-[0.3em] text-white/50">CARREGANDO…</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url(1)}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover opacity-30"
+          />
+          <div className="relative z-10 flex flex-col items-center gap-3">
+            <div className="h-[2px] w-40 overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full bg-accent transition-[width] duration-150"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
+            <span className="text-xs tracking-[0.3em] text-white/60">
+              {Math.round(progress * 100)}%
+            </span>
+          </div>
         </div>
       )}
     </section>
