@@ -89,13 +89,13 @@ export default function HeroSequence() {
     <section
       ref={rootRef}
       className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
-      aria-label="Building hero — scroll or drag from day to night"
+      aria-label="Empreendimento — role ou arraste do dia para a noite"
     >
       {/* day base (LCP) */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={DAY_SRC}
-        alt="Premium tower over the Rio de Janeiro skyline by day"
+        alt="Torre premium do empreendimento durante o dia"
         fetchPriority="high"
         className="absolute inset-0 h-full w-full object-cover"
       />
@@ -112,7 +112,7 @@ export default function HeroSequence() {
 
       {!loaded && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#05101c]">
-          <span className="text-xs tracking-[0.3em] text-white/50">LOADING…</span>
+          <span className="text-xs tracking-[0.3em] text-white/50">CARREGANDO…</span>
         </div>
       )}
     </section>

@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Zytro — Immersive Real Estate Experience",
+  title: "Zytro — Experiência Imobiliária Imersiva",
   description:
-    "A cinematic, scroll-driven tour of a premium real estate development.",
+    "Um tour cinematográfico e interativo de um empreendimento imobiliário premium.",
 };
 
 export default function RootLayout({
