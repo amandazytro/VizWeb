@@ -21,15 +21,83 @@ import {
 const ORIENTATIONS: Orientation[] = ["N", "S", "E", "W"];
 const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
 
-// Hero image natural size (public/hero/diurno.webp) + the tower facade region
-// within it, in image-percent. Tweak FACADE to recalibrate the grid on the
-// building. Rendered with object-cover (centered), matched below.
+// Hero image natural size (public/hero/diurno.webp). The tower facade is a
+// perspective QUAD (4 corners in image-percent); a uniform floor×line grid is
+// mapped through a square→quad homography, so cells become trapezoids that
+// follow the building's perspective. Recalibrate by editing FACADE_QUAD
+// (TL, TR, BR, BL) — replace with the user's annotated corners for an exact fit.
 const IMG_W = 1754;
 const IMG_H = 896;
-const FACADE = { left: 43.4, right: 55.4, top: 14.0, bottom: 78.5 };
+
+type Pt = [number, number];
+type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
+
+// The tower shows two faces meeting at a central seam. Each face is a quad
+// (image-%) and carries a subset of the unit lines. Floor rows are uniform in
+// facade space; the homography handles perspective. Calibrated from the user's
+// rainbow-annotated render (same composition as diurno.webp).
+const FACES: { quad: Quad; lines: string[] }[] = [
+  {
+    // left face — narrower, recedes to the left of the seam
+    quad: { TL: [40.0, 19.6], TR: [48.2, 14.4], BR: [49.3, 81.7], BL: [40.2, 78.0] },
+    lines: ["A"],
+  },
+  {
+    // right/front face — broader, right of the seam
+    quad: { TL: [48.2, 14.4], TR: [57.5, 19.0], BR: [57.8, 81.0], BL: [49.3, 81.7] },
+    lines: ["B", "C"],
+  },
+];
+
+// line → which face + its column within that face
+const LINE_FACE: Record<string, { face: number; col: number; cols: number }> = (() => {
+  const m: Record<string, { face: number; col: number; cols: number }> = {};
+  FACES.forEach((f, fi) =>
+    f.lines.forEach((ln, ci) => (m[ln] = { face: fi, col: ci, cols: f.lines.length }))
+  );
+  return m;
+})();
 
 const FLOORS = Array.from(new Set(UNITS.map((u) => u.floor))).sort((a, b) => b - a);
-const LINE_INDEX: Record<string, number> = { A: 0, B: 1, C: 2 };
+const ROWS = FLOORS.length;
+
+// object-cover mapping: image-% point → screen px (image centered, cover-fit).
+function coverPoint(px: number, py: number, w: number, h: number): Pt {
+  const scale = Math.max(w / IMG_W, h / IMG_H);
+  const dispW = IMG_W * scale;
+  const dispH = IMG_H * scale;
+  const offX = (w - dispW) / 2;
+  const offY = (h - dispH) / 2;
+  return [offX + (px / 100) * dispW, offY + (py / 100) * dispH];
+}
+
+// Unit square (u,v)∈[0,1] → quad (projective). Heckbert square-to-quad.
+function makeQuadMap(p0: Pt, p1: Pt, p2: Pt, p3: Pt) {
+  const ax = p0[0] - p1[0] + p2[0] - p3[0];
+  const ay = p0[1] - p1[1] + p2[1] - p3[1];
+  let a: number, b: number, c: number, d: number, e: number, f: number, g: number, hh: number;
+  if (Math.abs(ax) < 1e-6 && Math.abs(ay) < 1e-6) {
+    a = p1[0] - p0[0]; b = p2[0] - p1[0]; c = p0[0];
+    d = p1[1] - p0[1]; e = p2[1] - p1[1]; f = p0[1];
+    g = 0; hh = 0;
+  } else {
+    const bx = p1[0] - p2[0], by = p1[1] - p2[1];
+    const cx = p3[0] - p2[0], cy = p3[1] - p2[1];
+    const det = bx * cy - cx * by;
+    g = (ax * cy - ay * cx) / det;
+    hh = (bx * ay - by * ax) / det;
+    a = p1[0] - p0[0] + g * p1[0];
+    b = p3[0] - p0[0] + hh * p3[0];
+    c = p0[0];
+    d = p1[1] - p0[1] + g * p1[1];
+    e = p3[1] - p0[1] + hh * p3[1];
+    f = p0[1];
+  }
+  return (u: number, v: number): Pt => {
+    const w = g * u + hh * v + 1;
+    return [(a * u + b * v + c) / w, (d * u + e * v + f) / w];
+  };
+}
 
 function Chip({
   active,
@@ -65,8 +133,8 @@ function FieldRow({ k, v }: { k: string; v: string }) {
   );
 }
 
-/** Map the facade % region to pixel rects using object-cover math. */
-function useFacadeRects() {
+/** Track viewport + build a square→quad map per tower face (screen px). */
+function useFaceMaps() {
   const [vp, setVp] = useState({ w: 0, h: 0 });
   useEffect(() => {
     const update = () => setVp({ w: window.innerWidth, h: window.innerHeight });
@@ -78,19 +146,31 @@ function useFacadeRects() {
   return useMemo(() => {
     const { w, h } = vp;
     if (!w || !h) return null;
-    const scale = Math.max(w / IMG_W, h / IMG_H);
-    const dispW = IMG_W * scale;
-    const dispH = IMG_H * scale;
-    const offX = (w - dispW) / 2;
-    const offY = (h - dispH) / 2;
-    const fx0 = offX + (FACADE.left / 100) * dispW;
-    const fx1 = offX + (FACADE.right / 100) * dispW;
-    const fy0 = offY + (FACADE.top / 100) * dispH;
-    const fy1 = offY + (FACADE.bottom / 100) * dispH;
-    const colW = (fx1 - fx0) / 3;
-    const rowH = (fy1 - fy0) / FLOORS.length;
-    return { fx0, fy0, colW, rowH };
+    const maps = FACES.map((f) => {
+      const { TL, TR, BR, BL } = f.quad;
+      return makeQuadMap(
+        coverPoint(TL[0], TL[1], w, h),
+        coverPoint(TR[0], TR[1], w, h),
+        coverPoint(BR[0], BR[1], w, h),
+        coverPoint(BL[0], BL[1], w, h)
+      );
+    });
+    return { w, h, maps };
   }, [vp]);
+}
+
+/** Inset a quad's 4 corners toward its centroid for a small gap between cells. */
+function insetQuad(pts: Pt[], amt: number): string {
+  const cx = (pts[0][0] + pts[1][0] + pts[2][0] + pts[3][0]) / 4;
+  const cy = (pts[0][1] + pts[1][1] + pts[2][1] + pts[3][1]) / 4;
+  return pts
+    .map(([x, y]) => {
+      const dx = cx - x;
+      const dy = cy - y;
+      const len = Math.hypot(dx, dy) || 1;
+      return `${x + (dx / len) * amt},${y + (dy / len) * amt}`;
+    })
+    .join(" ");
 }
 
 export default function ApartmentsOverlay() {
@@ -103,7 +183,7 @@ export default function ApartmentsOverlay() {
   const [hover, setHover] = useState<Unit | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const rects = useFacadeRects();
+  const facade = useFaceMaps();
 
   const set = <K extends keyof Filters>(k: K, v: Filters[K]) =>
     setFilters((f) => ({ ...f, [k]: v }));
@@ -137,43 +217,55 @@ export default function ApartmentsOverlay() {
       {/* subtle top/bottom scrim so controls stay legible over the photo */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/55" />
 
-      {/* on-image building hotspots */}
-      {rects &&
-        FLOORS.map((floor, row) =>
-          UNITS.filter((u) => u.floor === floor).map((u) => {
-            const col = LINE_INDEX[u.line] ?? 0;
-            const on = matchedIds.has(u.id);
-            const clickable = u.status !== "sold";
-            const isSel = selected?.id === u.id;
-            const x = rects.fx0 + col * rects.colW;
-            const y = rects.fy0 + row * rects.rowH;
-            return (
-              <button
-                key={u.id}
-                type="button"
-                disabled={!clickable}
-                onMouseEnter={() => setHover(u)}
-                onMouseLeave={() => setHover((h) => (h?.id === u.id ? null : h))}
-                onClick={() => clickable && setSelected(u)}
-                aria-label={`Unit ${u.label} — ${STATUS_META[u.status].label}`}
-                className={[
-                  "pointer-events-auto absolute rounded-[2px] border transition",
-                  on ? "opacity-100" : "opacity-10",
-                  clickable ? "cursor-pointer hover:brightness-125" : "cursor-not-allowed",
-                  isSel ? "z-10 border-white ring-2 ring-white" : "border-white/25",
-                ].join(" ")}
-                style={{
-                  left: x + 1,
-                  top: y + 1,
-                  width: Math.max(rects.colW - 2, 2),
-                  height: Math.max(rects.rowH - 2, 2),
-                  background: STATUS_META[u.status].dot,
-                  opacity: on ? (isSel ? 0.92 : 0.62) : 0.1,
-                }}
-              />
-            );
-          })
-        )}
+      {/* on-image building hotspots — perspective grid (square→quad homography) */}
+      {facade && (
+        <svg
+          className="pointer-events-none absolute inset-0"
+          width={facade.w}
+          height={facade.h}
+          viewBox={`0 0 ${facade.w} ${facade.h}`}
+        >
+          {FLOORS.map((floor, row) =>
+            UNITS.filter((u) => u.floor === floor).map((u) => {
+              const lf = LINE_FACE[u.line];
+              if (!lf) return null;
+              const map = facade.maps[lf.face];
+              const on = matchedIds.has(u.id);
+              const clickable = u.status !== "sold";
+              const isSel = selected?.id === u.id;
+              const u0 = lf.col / lf.cols;
+              const u1 = (lf.col + 1) / lf.cols;
+              const v0 = row / ROWS;
+              const v1 = (row + 1) / ROWS;
+              const corners: Pt[] = [
+                map(u0, v0),
+                map(u1, v0),
+                map(u1, v1),
+                map(u0, v1),
+              ];
+              return (
+                <polygon
+                  key={u.id}
+                  points={insetQuad(corners, 1.2)}
+                  fill={STATUS_META[u.status].dot}
+                  fillOpacity={on ? (isSel ? 0.92 : 0.6) : 0.08}
+                  stroke={isSel ? "#fff" : "rgba(255,255,255,0.25)"}
+                  strokeWidth={isSel ? 2 : 0.75}
+                  className={[
+                    on && clickable ? "pointer-events-auto" : "pointer-events-none",
+                    clickable ? "cursor-pointer" : "cursor-not-allowed",
+                  ].join(" ")}
+                  style={{ transition: "fill-opacity 150ms" }}
+                  onMouseEnter={() => on && setHover(u)}
+                  onMouseLeave={() => setHover((h) => (h?.id === u.id ? null : h))}
+                  onClick={() => clickable && on && setSelected(u)}
+                  aria-label={`Unit ${u.label} — ${STATUS_META[u.status].label}`}
+                />
+              );
+            })
+          )}
+        </svg>
+      )}
 
       {/* header: legend + count + close + filters toggle */}
       <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between px-6 py-4">
