@@ -18,7 +18,7 @@ type ExperienceState = {
 };
 
 export const useExperience = create<ExperienceState>((set) => ({
-  dayNight: 0.12, // open bright (early day)
+  dayNight: 0, // open in full day; scroll drives it toward night
   setDayNight: (v) => set({ dayNight: Math.min(1, Math.max(0, v)) }),
   panel: "none",
   openPanel: (p) => set({ panel: p }),
