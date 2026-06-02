@@ -28,10 +28,10 @@ function CompassIcon({ className = "" }: { className?: string }) {
   );
 }
 function ExploreIcon({ className = "" }: { className?: string }) {
+  // Custom glyph (Refs/explorar.svg), cropped to the icon bounds.
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z" />
-      <path d="M9 4v13M15 7v13" />
+    <svg viewBox="19 20 28 27" className={className} fill="currentColor">
+      <path d="M33.0958 21.0011C33.6315 21 34.3726 21.1502 34.8911 21.3125C36.2879 21.7508 42.1041 26.2567 43.4444 27.4384C44.6992 28.5447 45.834 30.1339 46.0056 31.8334C46.2175 33.9362 46.1976 38.222 46.012 40.3449C45.7566 43.2712 43.0835 45.8213 40.1953 46.2867C35.7318 46.0681 30.746 46.7058 26.3421 46.3291C22.9936 46.0426 20.3861 43.1513 20.1301 39.9119C19.9225 37.2849 19.7988 31.5082 21.0971 29.3194C22.1572 27.5323 27.0101 24.1131 28.9205 22.7616C30.2985 21.7864 31.2645 21.0037 33.0958 21V21.0011Z" />
     </svg>
   );
 }
@@ -51,11 +51,11 @@ function SofaIcon({ className = "" }: { className?: string }) {
   );
 }
 function MediaIcon({ className = "" }: { className?: string }) {
+  // Custom glyph (Refs/galeria.svg), cropped to the icon bounds.
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="14" rx="2" />
-      <circle cx="9" cy="9" r="1.6" />
-      <path d="M21 15l-5-4-5 4-3-2-5 4" />
+    <svg viewBox="47 46 30 29" className={className} fill="currentColor">
+      <path d="M67.2492 54.4438C69.0678 54.2009 70.2035 55.5359 70.9225 56.9833C72.5538 60.2663 73.7693 63.8955 75.3602 67.2124C76.4984 70.5335 74.2582 73.8627 70.7562 74.2188L52.6459 74.2155C48.7819 73.6678 46.8424 70.1212 48.4098 66.5879C49.0163 65.2198 49.8907 63.5246 50.6316 62.2185C51.5018 60.6852 52.551 59.5625 54.5149 59.8244C56.7963 60.1276 57.3264 62.9314 59.3709 63.0273C60.3041 63.071 61.0862 62.4564 61.5927 61.7451C62.9711 59.8087 64.678 54.7883 67.2484 54.4446L67.2492 54.4438Z" />
+      <path d="M54.3612 46.9013C59.8363 46.2957 61.5482 53.4962 56.8072 55.4294C53.2633 56.8743 49.6362 53.6532 50.6971 50.0389C51.1541 48.4833 52.7047 47.0847 54.3612 46.9021V46.9013Z" />
     </svg>
   );
 }
