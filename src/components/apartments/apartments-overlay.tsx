@@ -284,9 +284,9 @@ export default function ApartmentsOverlay() {
             <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">DISPONIBILIDADE</h2>
             <span className="text-xs text-white/70">{matched.length}/{UNITS.length} unidades</span>
           </div>
-          <ul className="flex flex-col gap-1.5">
+          <ul className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
             {Object.entries(STATUS_META).map(([k, m]) => (
-              <li key={k} className="flex items-center gap-2 text-xs text-white/85 drop-shadow">
+              <li key={k} className="flex items-center gap-1.5 text-xs text-white/85 drop-shadow">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.dot }} />
                 {m.label}
               </li>
