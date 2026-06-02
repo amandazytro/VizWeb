@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useExperience } from "@/lib/store";
 
 // Explore frame sequence extracted from the client video (Refs/0001-1495.mp4),
 // subsampled to webp. Scroll/drag scrubs forward and backward smoothly.
@@ -100,7 +101,11 @@ export default function HeroSequence() {
       raf.current = requestAnimationFrame(tick);
     }
     const f = Math.round(current.current);
-    if (f !== drawn.current) draw(f);
+    if (f !== drawn.current) {
+      draw(f);
+      // map frame → orbit heading (full clip ≈ 360°)
+      useExperience.getState().setHeading((f / (COUNT - 1)) * 360);
+    }
   };
   const kick = () => {
     if (!raf.current) raf.current = requestAnimationFrame(tick);

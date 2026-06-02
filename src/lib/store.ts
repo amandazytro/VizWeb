@@ -17,6 +17,8 @@ type ExperienceState = {
   closePanel: () => void;
   uiHidden: boolean;
   setUiHidden: (v: boolean) => void;
+  heading: number; // compass heading in degrees (0 = N), driven by the orbit scrub
+  setHeading: (v: number) => void;
 };
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -27,6 +29,8 @@ export const useExperience = create<ExperienceState>((set) => ({
   closePanel: () => set({ panel: "none" }),
   uiHidden: false,
   setUiHidden: (v) => set({ uiHidden: v }),
+  heading: 0,
+  setHeading: (v) => set({ heading: ((v % 360) + 360) % 360 }),
 }));
 
 /** Map a 0..1 mood value to a clock label (05:00 .. 21:00). */
