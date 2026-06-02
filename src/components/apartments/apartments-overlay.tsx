@@ -127,7 +127,7 @@ function Chip({
 
 function FieldRow({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/8 py-2 text-sm">
+    <div className="flex items-center justify-between gap-2 border-b border-white/8 py-1.5 text-[13px]">
       <span className="text-white/50">{k}</span>
       <span className="font-medium text-white">{v}</span>
     </div>
@@ -277,21 +277,23 @@ export default function ApartmentsOverlay() {
         </svg>
       )}
 
-      {/* header: legend + count + close + filters toggle */}
+      {/* header: title + legend (top-left) · controls (top-right) */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-6 py-4">
-        <div className="pointer-events-auto flex items-baseline gap-3">
-          <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">DISPONIBILIDADE</h2>
-          <span className="text-xs text-white/70">{matched.length}/{UNITS.length} unidades</span>
-        </div>
-        <div className="pointer-events-auto flex items-center gap-3">
-          <ul className="hidden items-center gap-4 sm:flex">
+        <div className="pointer-events-auto flex flex-col gap-2">
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">DISPONIBILIDADE</h2>
+            <span className="text-xs text-white/70">{matched.length}/{UNITS.length} unidades</span>
+          </div>
+          <ul className="flex flex-col gap-1.5">
             {Object.entries(STATUS_META).map(([k, m]) => (
-              <li key={k} className="flex items-center gap-1.5 text-xs text-white/80">
+              <li key={k} className="flex items-center gap-2 text-xs text-white/85 drop-shadow">
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.dot }} />
                 {m.label}
               </li>
             ))}
           </ul>
+        </div>
+        <div className="pointer-events-auto flex items-center gap-3">
           <button
             type="button"
             onClick={() => setShowFilters((v) => !v)}
@@ -416,8 +418,8 @@ export default function ApartmentsOverlay() {
 
       {/* detail drawer */}
       {selected && (
-        <aside className="pointer-events-auto absolute right-4 top-20 bottom-24 w-[min(360px,calc(100%-2rem))] overflow-y-auto rounded-2xl border border-white/15 bg-[#0a1726]/35 px-6 py-6 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
-          <div className="flex items-start justify-between">
+        <aside className="pointer-events-auto absolute right-4 top-16 bottom-16 flex w-[min(360px,calc(100%-2rem))] flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0a1726]/35 px-6 py-5 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+          <div className="flex shrink-0 items-start justify-between">
             <div>
               <p className="text-xs tracking-widest text-white/45">UNIDADE</p>
               <h3 className="text-3xl font-light text-white">{selected.label}</h3>
@@ -430,7 +432,8 @@ export default function ApartmentsOverlay() {
             </span>
           </div>
 
-          <div className="mt-5 aspect-square w-full overflow-hidden rounded-lg border border-white/15 bg-white">
+          {/* floorplan absorbs leftover height so the panel never scrolls */}
+          <div className="mt-4 min-h-0 flex-1 overflow-hidden rounded-lg border border-white/15 bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={plantaFor(selected.id)}
@@ -439,7 +442,7 @@ export default function ApartmentsOverlay() {
             />
           </div>
 
-          <div className="mt-5">
+          <div className="mt-4 grid shrink-0 grid-cols-2 gap-x-5">
             <FieldRow k="Andar" v={String(selected.floor)} />
             <FieldRow k="Área" v={`${selected.area} m²`} />
             <FieldRow k="Dormitórios" v={String(selected.bedrooms)} />
@@ -452,14 +455,14 @@ export default function ApartmentsOverlay() {
 
           <button
             type="button"
-            className="mt-6 w-full rounded-full bg-accent py-2.5 text-sm font-medium text-white transition hover:brightness-110"
+            className="mt-4 w-full shrink-0 rounded-full bg-accent py-2.5 text-sm font-medium text-white transition hover:brightness-110"
           >
             Solicitar contato
           </button>
           <button
             type="button"
             onClick={() => setSelected(null)}
-            className="mt-2 w-full text-xs text-white/45 hover:text-white"
+            className="mt-2 w-full shrink-0 text-xs text-white/45 hover:text-white"
           >
             Voltar à disponibilidade
           </button>
