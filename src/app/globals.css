@@ -26,19 +26,9 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
-  overscroll-behavior: none;
-}
-
-/* Lenis smooth-scroll baseline */
-html.lenis,
-html.lenis body {
-  height: auto;
-}
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-.lenis.lenis-stopped {
+  /* Single fixed viewport — no vertical page scroll. */
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 ::selection {

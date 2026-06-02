@@ -173,7 +173,7 @@ export default function Hud() {
       {/* ── Scroll hint (fades as user scrolls is handled by hero; static here) ── */}
       <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
         <span className="text-[10px] uppercase tracking-[0.4em] text-white/45">
-          Scroll to explore
+          Scroll · day → night
         </span>
       </div>
     </div>
