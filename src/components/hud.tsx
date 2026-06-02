@@ -59,6 +59,54 @@ function MediaIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+function InterfaceIcon({ className = "" }: { className?: string }) {
+  // Custom glyph (Refs/interface.svg) — eye-off, cropped to bounds.
+  return (
+    <svg viewBox="17 21 33 24" className={className} fill="currentColor">
+      <path d="M48.4857 31.8895V32.6058C48.3449 33.1309 48.0632 33.5054 47.7586 33.9378C46.4636 35.7765 44.7254 37.4449 42.855 38.6863L39.0881 34.9358C41.4498 29.4667 35.9927 24.0019 30.5236 26.3713L27.8398 23.6274C34.8397 21.2079 42.2589 23.8786 46.8731 29.4164C47.4965 30.1655 48.1571 30.9647 48.4857 31.8906V31.8895Z" />
+      <path d="M22.3334 22.1772C22.6424 22.1139 23.0595 22.1565 23.3062 22.3705L42.8766 41.8819C43.9401 42.8821 42.8002 44.4686 41.5424 43.7534L38.6107 40.86C33.0095 42.8002 26.9508 41.4987 22.3814 37.8552C21.0352 36.7819 19.1211 34.8635 18.2673 33.3775C17.3261 31.7386 18.8176 30.2286 19.8723 29.0254C20.9522 27.7937 22.2242 26.7434 23.5421 25.7738C23.5421 25.6275 21.6968 24.1371 21.5549 23.6458C21.3845 23.0584 21.699 22.3083 22.3334 22.1783V22.1772ZM35.8342 38.1533C35.8604 38.0495 35.7905 38.0343 35.7446 37.9742C35.3133 37.4119 34.5643 36.8933 34.1014 36.3321C31.1359 36.9348 28.5198 34.3219 29.1225 31.3532C28.5613 30.8902 28.0427 30.1412 27.4804 29.71C27.4203 29.6641 27.405 29.5942 27.3013 29.6204C25.0226 35.0491 30.4076 40.4309 35.8331 38.1522L35.8342 38.1533Z" />
+      <path d="M32.8991 28.0893C35.3045 27.8621 37.4369 29.9454 37.3888 32.3398C37.3866 32.4501 37.3146 33.0834 37.2371 33.0823L32.375 28.2203C32.3707 28.1373 32.8118 28.0969 32.8991 28.0893Z" />
+    </svg>
+  );
+}
+function CameraIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M9 3l-1.2 2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.8L15 3H9Zm3 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"
+      />
+    </svg>
+  );
+}
+
+function CornerButton({
+  icon: Icon,
+  label,
+  active = false,
+  onClick,
+}: {
+  icon: (p: { className?: string }) => ReactNode;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "pointer-events-auto flex flex-col items-center gap-1 transition",
+        active ? "text-white" : "text-white/75 hover:text-white",
+      ].join(" ")}
+    >
+      <Icon className="h-5 w-5" />
+      <span className="text-[10px] tracking-[0.18em]">{label}</span>
+    </button>
+  );
+}
 
 const HORIZON = ["Explore", "Apartments", "Decored"] as const;
 type Nav = (typeof HORIZON)[number];
@@ -81,6 +129,8 @@ export default function Hud() {
   const panel = useExperience((s) => s.panel);
   const openPanel = useExperience((s) => s.openPanel);
   const closePanel = useExperience((s) => s.closePanel);
+  const uiHidden = useExperience((s) => s.uiHidden);
+  const setUiHidden = useExperience((s) => s.setUiHidden);
   const [active, setActive] = useState<Nav>("Explore");
 
   // Keep nav highlight in sync when the panel is closed elsewhere (Esc / ✕).
@@ -88,11 +138,34 @@ export default function Hud() {
     if (panel === "none" && active === "Apartments") setActive("Explore");
   }, [panel, active]);
 
+  // Esc restores a hidden interface (photo / clean view).
+  useEffect(() => {
+    if (!uiHidden) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setUiHidden(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [uiHidden, setUiHidden]);
+
   const onNav = (item: Nav) => {
     setActive(item);
     if (item === "Apartments") openPanel("apartments");
     else closePanel();
   };
+
+  // Clean view: hide the whole HUD, leave a single restore affordance.
+  if (uiHidden) {
+    return (
+      <button
+        type="button"
+        onClick={() => setUiHidden(false)}
+        aria-label="Mostrar interface"
+        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-4 py-2 text-[11px] tracking-widest text-white/80 backdrop-blur-md transition hover:bg-white/10"
+      >
+        <InterfaceIcon className="h-4 w-4" />
+        Interface
+      </button>
+    );
+  }
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none">
@@ -121,20 +194,16 @@ export default function Hud() {
         </div>
       </div>
 
-      {/* ── Bottom-left: Media ── */}
-      <div className="absolute bottom-6 left-6">
-        <button
-          type="button"
+      {/* ── Bottom-left: Mídia · Interface · Modo Foto ── */}
+      <div className="absolute bottom-6 left-6 flex items-end gap-6">
+        <CornerButton
+          icon={MediaIcon}
+          label="Mídia"
+          active={panel === "gallery"}
           onClick={() => openPanel("gallery")}
-          aria-pressed={panel === "gallery"}
-          className={[
-            "pointer-events-auto flex flex-col items-center gap-1 transition",
-            panel === "gallery" ? "text-white" : "text-white/75 hover:text-white",
-          ].join(" ")}
-        >
-          <MediaIcon className="h-5 w-5" />
-          <span className="text-[10px] tracking-[0.18em]">Galeria</span>
-        </button>
+        />
+        <CornerButton icon={InterfaceIcon} label="Interface" onClick={() => setUiHidden(true)} />
+        <CornerButton icon={CameraIcon} label="Modo Foto" onClick={() => setUiHidden(true)} />
       </div>
 
       {/* ── Bottom-center: primary nav ── */}
