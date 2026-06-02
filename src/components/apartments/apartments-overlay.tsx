@@ -131,38 +131,65 @@ function Card({ className = "", children }: { className?: string; children: Reac
   );
 }
 
-function Slider({
+function brlShort(v: number): string {
+  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(v % 1_000_000 ? 1 : 0).replace(".", ",")}M`;
+  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)} mil`;
+  return formatBRL(v);
+}
+
+function RangeSlider({
   label,
-  value,
   display,
   min,
   max,
   step = 1,
-  onChange,
+  vmin,
+  vmax,
+  onMin,
+  onMax,
 }: {
   label: string;
-  value: number;
   display: string;
   min: number;
   max: number;
   step?: number;
-  onChange: (v: number) => void;
+  vmin: number;
+  vmax: number;
+  onMin: (v: number) => void;
+  onMax: (v: number) => void;
 }) {
+  const pct = (v: number) => ((v - min) / (max - min)) * 100;
   return (
     <div>
-      <div className="mb-1.5 flex items-baseline justify-between">
+      <div className="mb-2 flex items-baseline justify-between gap-2">
         <span className="text-[11px] tracking-widest text-white/55">{label}</span>
         <span className="text-xs font-medium text-white">{display}</span>
       </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="zy-range h-1 w-full cursor-pointer appearance-none rounded-full bg-white/20"
-      />
+      <div className="relative flex h-4 items-center">
+        <div className="absolute h-1 w-full rounded-full bg-white/20" />
+        <div
+          className="absolute h-1 rounded-full bg-accent"
+          style={{ left: `${pct(vmin)}%`, right: `${100 - pct(vmax)}%` }}
+        />
+        <input
+          type="range"
+          className="zy-dual"
+          min={min}
+          max={max}
+          step={step}
+          value={vmin}
+          onChange={(e) => onMin(Math.min(Number(e.target.value), vmax - step))}
+        />
+        <input
+          type="range"
+          className="zy-dual"
+          min={min}
+          max={max}
+          step={step}
+          value={vmax}
+          onChange={(e) => onMax(Math.max(Number(e.target.value), vmin + step))}
+        />
+      </div>
     </div>
   );
 }
@@ -299,13 +326,15 @@ export default function ApartmentsOverlay() {
       {/* bottom-left: Andar (card) + Dormitórios (card) */}
       <div className="absolute bottom-6 left-6 flex w-60 flex-col gap-3">
         <Card>
-          <Slider
+          <RangeSlider
             label="ANDAR"
-            value={filters.floorMin}
-            display={`${filters.floorMin}º +`}
+            display={`${filters.floorMin}º — ${filters.floorMax}º`}
             min={FLOOR_MIN}
             max={FLOOR_MAX}
-            onChange={(v) => set("floorMin", v)}
+            vmin={filters.floorMin}
+            vmax={filters.floorMax}
+            onMin={(v) => set("floorMin", v)}
+            onMax={(v) => set("floorMax", v)}
           />
         </Card>
         <Card>
@@ -333,24 +362,28 @@ export default function ApartmentsOverlay() {
       {/* bottom-right: Valor (card) + Metragem (card) */}
       <div className="absolute bottom-6 right-6 flex w-64 flex-col gap-3">
         <Card>
-          <Slider
+          <RangeSlider
             label="VALOR"
-            value={filters.priceMax}
-            display={formatBRL(filters.priceMax)}
+            display={`${brlShort(filters.priceMin)} — ${brlShort(filters.priceMax)}`}
             min={PRICE_FLOOR}
             max={PRICE_CAP}
             step={10000}
-            onChange={(v) => set("priceMax", v)}
+            vmin={filters.priceMin}
+            vmax={filters.priceMax}
+            onMin={(v) => set("priceMin", v)}
+            onMax={(v) => set("priceMax", v)}
           />
         </Card>
         <Card>
-          <Slider
+          <RangeSlider
             label="METRAGEM"
-            value={filters.areaMax}
-            display={`${filters.areaMax} m²`}
+            display={`${filters.areaMin} — ${filters.areaMax} m²`}
             min={AREA_FLOOR}
             max={AREA_CAP}
-            onChange={(v) => set("areaMax", v)}
+            vmin={filters.areaMin}
+            vmax={filters.areaMax}
+            onMin={(v) => set("areaMin", v)}
+            onMax={(v) => set("areaMax", v)}
           />
         </Card>
       </div>
