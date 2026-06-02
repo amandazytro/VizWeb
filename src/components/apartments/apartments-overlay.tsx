@@ -26,8 +26,8 @@ const VIEWS: ViewType[] = ["City", "Park", "Ocean", "Mountain"];
 // mapped through a square→quad homography, so cells become trapezoids that
 // follow the building's perspective. Recalibrate by editing FACADE_QUAD
 // (TL, TR, BR, BL) — replace with the user's annotated corners for an exact fit.
-const IMG_W = 1754;
-const IMG_H = 896;
+const IMG_W = 1713;
+const IMG_H = 960;
 
 type Pt = [number, number];
 type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
@@ -38,13 +38,13 @@ type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
 // rainbow-annotated render (same composition as diurno.webp).
 const FACES: { quad: Quad; lines: string[] }[] = [
   {
-    // left face — narrower, recedes to the left of the seam
-    quad: { TL: [40.0, 19.6], TR: [48.2, 14.4], BR: [49.3, 81.7], BL: [40.2, 78.0] },
+    // left tower slab (near-frontal)
+    quad: { TL: [38.0, 16.0], TR: [49.4, 16.0], BR: [49.4, 88.0], BL: [38.0, 88.0] },
     lines: ["A"],
   },
   {
-    // right/front face — broader, right of the seam
-    quad: { TL: [48.2, 14.4], TR: [57.5, 19.0], BR: [57.8, 81.0], BL: [49.3, 81.7] },
+    // right tower slab
+    quad: { TL: [50.2, 16.0], TR: [62.0, 16.0], BR: [62.0, 88.0], BL: [50.2, 88.0] },
     lines: ["B", "C"],
   },
 ];
