@@ -278,12 +278,12 @@ export default function ApartmentsOverlay() {
       )}
 
       {/* header: legend + count + close + filters toggle */}
-      <header className="pointer-events-auto absolute inset-x-0 top-0 flex items-center justify-between px-6 py-4">
-        <div className="flex items-baseline gap-3">
+      <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between px-6 py-4">
+        <div className="pointer-events-auto flex items-baseline gap-3">
           <h2 className="text-sm tracking-[0.3em] text-white drop-shadow">DISPONIBILIDADE</h2>
           <span className="text-xs text-white/70">{matched.length}/{UNITS.length} unidades</span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="pointer-events-auto flex items-center gap-3">
           <ul className="hidden items-center gap-4 sm:flex">
             {Object.entries(STATUS_META).map(([k, m]) => (
               <li key={k} className="flex items-center gap-1.5 text-xs text-white/80">
@@ -324,7 +324,7 @@ export default function ApartmentsOverlay() {
 
       {/* filters drawer (toggled) */}
       {showFilters && (
-        <aside className="pointer-events-auto absolute bottom-6 left-6 top-20 w-72 overflow-y-auto rounded-2xl border border-white/12 bg-[#060f1c]/85 px-5 py-5 backdrop-blur-sm">
+        <aside className="pointer-events-auto absolute bottom-24 left-4 top-20 w-72 overflow-y-auto rounded-2xl border border-white/12 bg-[#0a1726]/35 px-5 py-5 ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
           <div className="space-y-6">
             <div>
               <label className="mb-2 block text-xs tracking-widest text-white/50">
@@ -416,7 +416,7 @@ export default function ApartmentsOverlay() {
 
       {/* detail drawer */}
       {selected && (
-        <aside className="pointer-events-auto absolute inset-y-0 right-0 w-full max-w-sm overflow-y-auto border-l border-white/15 bg-[#0a1726]/35 px-6 py-6 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+        <aside className="pointer-events-auto absolute right-4 top-20 bottom-24 w-[min(360px,calc(100%-2rem))] overflow-y-auto rounded-2xl border border-white/15 bg-[#0a1726]/35 px-6 py-6 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs tracking-widest text-white/45">UNIDADE</p>
