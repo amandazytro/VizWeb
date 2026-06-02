@@ -15,6 +15,8 @@ type ExperienceState = {
   panel: Panel;
   openPanel: (p: Panel) => void;
   closePanel: () => void;
+  uiHidden: boolean;
+  setUiHidden: (v: boolean) => void;
 };
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -23,6 +25,8 @@ export const useExperience = create<ExperienceState>((set) => ({
   panel: "none",
   openPanel: (p) => set({ panel: p }),
   closePanel: () => set({ panel: "none" }),
+  uiHidden: false,
+  setUiHidden: (v) => set({ uiHidden: v }),
 }));
 
 /** Map a 0..1 mood value to a clock label (05:00 .. 21:00). */
