@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { useExperience } from "@/lib/store";
+import { type ReactNode } from "react";
+import { useExperience, type Panel } from "@/lib/store";
 
 /* — orientation compass (replaces the time/mood bar) — */
 const CARD: Record<number, string> = {
@@ -69,11 +69,18 @@ function BuildingIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-function SofaIcon({ className = "" }: { className?: string }) {
+function StarIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3" />
-      <path d="M3 13a2 2 0 0 1 2 2v3h14v-3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2z" transform="translate(1 -1)" />
+      <path d="M12 3l2.7 5.7 6.3.9-4.6 4.4 1.1 6.2L12 17.8 6.5 20.2l1.1-6.2L3 9.6l6.3-.9L12 3z" />
+    </svg>
+  );
+}
+function PinIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21s7-5.6 7-11a7 7 0 0 0-14 0c0 5.4 7 11 7 11z" />
+      <circle cx="12" cy="10" r="2.5" />
     </svg>
   );
 }
@@ -86,28 +93,6 @@ function MediaIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-function InterfaceIcon({ className = "" }: { className?: string }) {
-  // Custom glyph (Refs/interface.svg) — eye-off, cropped to bounds.
-  return (
-    <svg viewBox="17 21 33 24" className={className} fill="currentColor">
-      <path d="M48.4857 31.8895V32.6058C48.3449 33.1309 48.0632 33.5054 47.7586 33.9378C46.4636 35.7765 44.7254 37.4449 42.855 38.6863L39.0881 34.9358C41.4498 29.4667 35.9927 24.0019 30.5236 26.3713L27.8398 23.6274C34.8397 21.2079 42.2589 23.8786 46.8731 29.4164C47.4965 30.1655 48.1571 30.9647 48.4857 31.8906V31.8895Z" />
-      <path d="M22.3334 22.1772C22.6424 22.1139 23.0595 22.1565 23.3062 22.3705L42.8766 41.8819C43.9401 42.8821 42.8002 44.4686 41.5424 43.7534L38.6107 40.86C33.0095 42.8002 26.9508 41.4987 22.3814 37.8552C21.0352 36.7819 19.1211 34.8635 18.2673 33.3775C17.3261 31.7386 18.8176 30.2286 19.8723 29.0254C20.9522 27.7937 22.2242 26.7434 23.5421 25.7738C23.5421 25.6275 21.6968 24.1371 21.5549 23.6458C21.3845 23.0584 21.699 22.3083 22.3334 22.1783V22.1772ZM35.8342 38.1533C35.8604 38.0495 35.7905 38.0343 35.7446 37.9742C35.3133 37.4119 34.5643 36.8933 34.1014 36.3321C31.1359 36.9348 28.5198 34.3219 29.1225 31.3532C28.5613 30.8902 28.0427 30.1412 27.4804 29.71C27.4203 29.6641 27.405 29.5942 27.3013 29.6204C25.0226 35.0491 30.4076 40.4309 35.8331 38.1522L35.8342 38.1533Z" />
-      <path d="M32.8991 28.0893C35.3045 27.8621 37.4369 29.9454 37.3888 32.3398C37.3866 32.4501 37.3146 33.0834 37.2371 33.0823L32.375 28.2203C32.3707 28.1373 32.8118 28.0969 32.8991 28.0893Z" />
-    </svg>
-  );
-}
-function CameraIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="currentColor">
-      <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M9 3l-1.2 2H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.8L15 3H9Zm3 5.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9Zm0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"
-      />
-    </svg>
-  );
-}
-
 function CornerButton({
   icon: Icon,
   label,
@@ -135,114 +120,76 @@ function CornerButton({
   );
 }
 
-const HORIZON = ["Explore", "Apartments", "Decored"] as const;
-type Nav = (typeof HORIZON)[number];
-
-const NAV_LABEL: Record<Nav, string> = {
-  Explore: "Explorar",
-  Apartments: "Apartamentos",
-  Decored: "Decorado",
-};
-
-const ICONS: Record<Nav, (p: { className?: string }) => ReactNode> = {
-  Explore: ExploreIcon,
-  Apartments: BuildingIcon,
-  Decored: SofaIcon,
-};
+const NAV: { label: string; icon: (p: { className?: string }) => ReactNode; panel: Panel }[] = [
+  { label: "Explorar", icon: ExploreIcon, panel: "none" },
+  { label: "Apartamentos", icon: BuildingIcon, panel: "apartments" },
+  { label: "Áreas comuns", icon: StarIcon, panel: "amenities" },
+  { label: "Arredores", icon: PinIcon, panel: "surroundings" },
+];
 
 export default function Hud() {
   const heading = useExperience((s) => s.heading);
   const panel = useExperience((s) => s.panel);
   const openPanel = useExperience((s) => s.openPanel);
   const closePanel = useExperience((s) => s.closePanel);
-  const uiHidden = useExperience((s) => s.uiHidden);
-  const setUiHidden = useExperience((s) => s.setUiHidden);
-  const [active, setActive] = useState<Nav>("Explore");
-
-  // Keep nav highlight in sync when the panel is closed elsewhere (Esc / ✕).
-  useEffect(() => {
-    if (panel === "none" && active === "Apartments") setActive("Explore");
-  }, [panel, active]);
-
-  // Esc restores a hidden interface (photo / clean view).
-  useEffect(() => {
-    if (!uiHidden) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setUiHidden(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [uiHidden, setUiHidden]);
-
-  const onNav = (item: Nav) => {
-    setActive(item);
-    if (item === "Apartments") openPanel("apartments");
-    else closePanel();
-  };
-
-  // Clean view: hide the whole HUD, leave a single restore affordance.
-  if (uiHidden) {
-    return (
-      <button
-        type="button"
-        onClick={() => setUiHidden(false)}
-        aria-label="Mostrar interface"
-        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-4 py-2 text-[11px] tracking-widest text-white/80 backdrop-blur-md transition hover:bg-white/10"
-      >
-        <InterfaceIcon className="h-4 w-4" />
-        Interface
-      </button>
-    );
-  }
+  const activePanel: Panel = panel === "gallery" ? "none" : panel;
+  const onNav = (p: Panel) => (p === "none" ? closePanel() : openPanel(p));
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none">
-      {/* ── Top: orientation compass ── */}
+      {/* ── Brand ── */}
+      <div className="absolute left-6 top-5">
+        <span className="text-sm font-semibold tracking-[0.25em] text-white drop-shadow">
+          THE VERTICAL
+        </span>
+      </div>
+
+      {/* ── Top-center: orientation compass ── */}
       <div className="absolute left-1/2 top-6 -translate-x-1/2">
         <Compass heading={heading} />
       </div>
 
-      {/* ── Bottom-left: Mídia · Interface · Modo Foto ── */}
-      <div className="absolute bottom-6 left-6 flex items-end gap-6">
+      {/* ── Top-right: Galeria ── */}
+      <div className="absolute right-6 top-3">
         <CornerButton
           icon={MediaIcon}
-          label="Mídia"
+          label="Galeria"
           active={panel === "gallery"}
           onClick={() => openPanel("gallery")}
         />
-        <CornerButton icon={InterfaceIcon} label="Interface" onClick={() => setUiHidden(true)} />
-        <CornerButton icon={CameraIcon} label="Modo Foto" onClick={() => setUiHidden(true)} />
       </div>
 
       {/* ── Bottom-center: primary nav ── */}
       <nav className="absolute bottom-6 left-1/2 -translate-x-1/2">
-        <ul className="pointer-events-auto flex items-end gap-9">
-          {HORIZON.map((item) => {
-            const Icon = ICONS[item];
-            const isActive = active === item;
+        <ul className="pointer-events-auto flex items-end gap-7 rounded-3xl border border-[var(--hud-border)] bg-[var(--hud)] px-7 py-2.5 backdrop-blur-md">
+          {NAV.map((item) => {
+            const Icon = item.icon;
+            const isActive = activePanel === item.panel;
             return (
-              <li key={item}>
+              <li key={item.label}>
                 <button
                   type="button"
-                  onClick={() => onNav(item)}
+                  onClick={() => onNav(item.panel)}
                   aria-pressed={isActive}
                   className="group flex flex-col items-center gap-1.5"
                 >
                   <span
                     className={[
-                      "flex h-11 w-11 items-center justify-center rounded-full border transition",
+                      "flex h-11 w-11 items-center justify-center rounded-full transition",
                       isActive
-                        ? "border-transparent bg-accent text-white shadow-[0_8px_24px_-6px_rgba(124,92,255,0.7)]"
-                        : "border-[var(--hud-border)] bg-[var(--hud)] text-white/80 backdrop-blur-md group-hover:text-white",
+                        ? "bg-accent text-white shadow-[0_8px_24px_-6px_rgba(124,92,255,0.7)]"
+                        : "bg-white/5 text-white/80 group-hover:bg-white/10 group-hover:text-white",
                     ].join(" ")}
                   >
                     <Icon className="h-5 w-5" />
                   </span>
                   <span
                     className={[
-                      "text-[10px] tracking-[0.18em] transition",
+                      "text-[10px] tracking-[0.14em] transition",
                       isActive ? "text-white" : "text-white/55 group-hover:text-white/80",
                     ].join(" ")}
                   >
-                    {NAV_LABEL[item]}
+                    {item.label}
                   </span>
                 </button>
               </li>
@@ -251,12 +198,14 @@ export default function Hud() {
         </ul>
       </nav>
 
-      {/* ── Scroll hint (fades as user scrolls is handled by hero; static here) ── */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 text-center">
-        <span className="text-[10px] uppercase tracking-[0.4em] text-white/45">
-          Role para explorar
-        </span>
-      </div>
+      {/* scroll hint only in Explore */}
+      {activePanel === "none" && panel !== "gallery" && (
+        <div className="absolute bottom-28 left-1/2 -translate-x-1/2 text-center">
+          <span className="text-[10px] uppercase tracking-[0.4em] text-white/45">
+            Role para explorar
+          </span>
+        </div>
+      )}
     </div>
   );
 }

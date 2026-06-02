@@ -7,7 +7,12 @@ import { create } from "zustand";
  * 0 = full day, 1 = full night. The HUD time-of-day slider writes it;
  * the hero canvas reads it to cross-fade the day/night frame sets in place.
  */
-export type Panel = "none" | "apartments" | "gallery";
+export type Panel =
+  | "none"
+  | "apartments"
+  | "gallery"
+  | "amenities"
+  | "surroundings";
 
 type ExperienceState = {
   dayNight: number;
