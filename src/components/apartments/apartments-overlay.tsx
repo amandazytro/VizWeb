@@ -305,10 +305,10 @@ export default function ApartmentsOverlay() {
               onClick={() => toggleStatus(s)}
               aria-pressed={on}
               className={[
-                "flex items-center gap-3 rounded-full border px-5 py-2.5 backdrop-blur-md transition",
+                "flex items-center gap-3 rounded-full border px-5 py-2.5 backdrop-blur-md transition duration-200 active:scale-95",
                 on
-                  ? "border-white/25 bg-[#0a1726]/70"
-                  : "border-white/10 bg-[#0a1726]/35 opacity-55 hover:opacity-90",
+                  ? "border-white/30 bg-[#0a1726]/70 ring-2 ring-white/25"
+                  : "border-white/10 bg-[#0a1726]/35 opacity-50 ring-0 hover:opacity-90",
               ].join(" ")}
             >
               <span
