@@ -155,15 +155,20 @@ export default function Hud() {
     <div className="pointer-events-none fixed inset-0 z-30 select-none">
       {/* ── Brand ── */}
       <div className="absolute left-6 top-5">
-        <span className="text-sm font-semibold tracking-[0.25em] text-white drop-shadow">
+        <span
+          style={{ fontFamily: "var(--font-recia), Georgia, serif", fontSize: "17px" }}
+          className="font-semibold tracking-[0.18em] text-white drop-shadow"
+        >
           THE VERTICAL
         </span>
       </div>
 
-      {/* ── Top-center: orientation compass ── */}
-      <div className="absolute left-1/2 top-6 -translate-x-1/2">
-        <Compass heading={heading} />
-      </div>
+      {/* ── Top-center: orientation compass (Explorar only) ── */}
+      {panel === "none" && (
+        <div className="absolute left-1/2 top-6 -translate-x-1/2">
+          <Compass heading={heading} />
+        </div>
+      )}
 
       {/* ── Top-right: Galeria ── */}
       <div className="absolute right-6 top-3">
