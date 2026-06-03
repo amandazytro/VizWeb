@@ -12,8 +12,8 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-redhat);
+  --font-mono: var(--font-redhat-mono);
 }
 
 html,
@@ -25,6 +25,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+  font-weight: 500;
   -webkit-font-smoothing: antialiased;
   /* Single fixed viewport — no vertical page scroll. */
   overflow: hidden;
@@ -48,6 +49,35 @@ body {
 }
 .zy-fadein {
   animation: zyFade 0.35s ease both;
+}
+
+/* route "draw": reveal the POI map (only the baked route differs from home)
+   by expanding a circle from the development origin → looks like the route
+   is being traced from start to finish. */
+@keyframes routeDraw {
+  from {
+    clip-path: circle(0% at var(--ox, 36%) var(--oy, 80%));
+  }
+  to {
+    clip-path: circle(150% at var(--ox, 36%) var(--oy, 80%));
+  }
+}
+.route-draw {
+  animation: routeDraw 1.8s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+@keyframes routeBadge {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+.route-badge {
+  animation: routeBadge 0.4s ease both;
+  animation-delay: 1.5s;
 }
 
 /* HUD time-of-day slider thumb */

@@ -14,7 +14,22 @@ const url = (n: number) =>
 // Gesture sensitivity: frames advanced per wheel/touch delta.
 const WHEEL_SENS = 0.12;
 const TOUCH_SENS = 0.25;
+const DRAG_SENS = 0.18; // frames per pixel when click-dragging
 const EASE = 0.18; // smoothing toward the scroll target
+
+// Directional drag cursors (white arrow + black outline), hotspot centered.
+const arrowCursor = (left: boolean) => {
+  const flip = left ? "scale(-1,1) translate(-36,0)" : "";
+  const svg =
+    `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'>` +
+    `<g transform='${flip}' fill='none' stroke-linecap='round' stroke-linejoin='round'>` +
+    `<path d='M7 18H29M21 10l8 8-8 8' stroke='black' stroke-width='7'/>` +
+    `<path d='M7 18H29M21 10l8 8-8 8' stroke='white' stroke-width='3.5'/>` +
+    `</g></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 18 18, auto`;
+};
+const CURSOR_RIGHT = arrowCursor(false);
+const CURSOR_LEFT = arrowCursor(true);
 
 export default function HeroSequence() {
   const rootRef = useRef<HTMLElement>(null);
@@ -25,6 +40,7 @@ export default function HeroSequence() {
   const drawn = useRef(-1);
   const raf = useRef(0);
   const touchY = useRef<number | null>(null);
+  const dragX = useRef<number | null>(null);
   const locked = useRef(false);
 
   const panel = useExperience((s) => s.panel);
@@ -138,16 +154,41 @@ export default function HeroSequence() {
       touchY.current = y;
     };
 
+    // Click-drag: drag right → forward (like scrolling down), left → back.
+    const onMouseDown = (e: MouseEvent) => {
+      if (locked.current) return;
+      dragX.current = e.clientX;
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      if (dragX.current == null) return;
+      const dx = e.clientX - dragX.current;
+      const node = rootRef.current;
+      if (node) node.style.cursor = dx > 0 ? CURSOR_RIGHT : dx < 0 ? CURSOR_LEFT : node.style.cursor;
+      advance(dx * DRAG_SENS);
+      dragX.current = e.clientX;
+    };
+    const onMouseUp = () => {
+      dragX.current = null;
+      if (rootRef.current) rootRef.current.style.cursor = "";
+    };
+
     const el = rootRef.current ?? window;
     el.addEventListener("wheel", onWheel as EventListener, { passive: false });
     el.addEventListener("touchstart", onTouchStart as EventListener, { passive: true });
     el.addEventListener("touchmove", onTouchMove as EventListener, { passive: true });
+    el.addEventListener("mousedown", onMouseDown as EventListener);
+    window.addEventListener("mousemove", onMouseMove as EventListener);
+    window.addEventListener("mouseup", onMouseUp as EventListener);
     window.addEventListener("resize", resize);
     return () => {
       el.removeEventListener("wheel", onWheel as EventListener);
       el.removeEventListener("touchstart", onTouchStart as EventListener);
       el.removeEventListener("touchmove", onTouchMove as EventListener);
+      el.removeEventListener("mousedown", onMouseDown as EventListener);
+      window.removeEventListener("mousemove", onMouseMove as EventListener);
+      window.removeEventListener("mouseup", onMouseUp as EventListener);
       window.removeEventListener("resize", resize);
+      document.body.style.cursor = "";
       if (raf.current) cancelAnimationFrame(raf.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,8 +239,8 @@ export default function HeroSequence() {
   return (
     <section
       ref={rootRef}
-      className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
-      aria-label="Empreendimento — role para percorrer o vídeo"
+      className="absolute inset-0 h-[100svh] w-full cursor-grab overflow-hidden bg-[#05101c] active:cursor-grabbing"
+      aria-label="Empreendimento — role ou arraste para percorrer o vídeo"
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
 
