@@ -446,8 +446,8 @@ export default function ApartmentsOverlay() {
       {/* detail panel (left) */}
       {selected && (
         <>
-          <aside className="zy-fadein pointer-events-auto absolute bottom-52 left-0 top-28 flex w-[min(440px,72%)] rounded-r-[1.4rem] border border-l-0 border-white/25 bg-white/10 py-6 pl-8 pr-6 shadow-[0_8px_60px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20 backdrop-blur-2xl backdrop-saturate-150 [text-shadow:0_1px_6px_rgba(0,0,0,0.35)]">
-            <div className="flex w-40 shrink-0 flex-col justify-center gap-5">
+          <aside className="zy-fadein pointer-events-auto absolute bottom-[16%] left-0 top-[22%] flex w-[min(440px,72%)] rounded-r-[1.4rem] border border-l-0 border-white/25 bg-white/10 py-5 pl-8 pr-6 shadow-[0_8px_60px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20 backdrop-blur-2xl backdrop-saturate-150 [text-shadow:0_1px_6px_rgba(0,0,0,0.35)]">
+            <div className="flex w-36 shrink-0 flex-col justify-center gap-4">
               <Detail label="Nº" value={selected.label} />
               <Detail label="Área" value={`${selected.area}m²`} />
               <Detail label="Dormitórios" value={pad2(selected.bedrooms)} />
@@ -457,13 +457,13 @@ export default function ApartmentsOverlay() {
                 <p className="text-3xl font-bold leading-tight text-white">{numBR(selected.price)}</p>
               </div>
             </div>
-            {/* transparent floorplan, overflowing the blurred panel edge */}
-            <div className="relative ml-6 flex-1 self-stretch">
+            {/* transparent floorplan, overflowing past the panel's right edge */}
+            <div className="relative ml-4 flex-1 self-stretch">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={plantaFor(selected.id)}
                 alt={`Planta — unidade ${selected.label}`}
-                className="pointer-events-none absolute right-0 top-1/2 h-[148%] w-[135%] max-w-none -translate-y-1/2 translate-x-[12%] object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
+                className="pointer-events-none absolute right-0 top-1/2 h-[165%] w-auto max-w-none -translate-y-1/2 translate-x-[22%] object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
               />
             </div>
           </aside>
