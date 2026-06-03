@@ -463,7 +463,7 @@ export default function ApartmentsOverlay() {
               <img
                 src={plantaFor(selected.id)}
                 alt={`Planta — unidade ${selected.label}`}
-                className="pointer-events-none absolute left-0 top-1/2 h-[128%] w-[118%] max-w-none -translate-y-1/2 object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
+                className="pointer-events-none absolute right-0 top-1/2 h-[148%] w-[135%] max-w-none -translate-y-1/2 translate-x-[12%] object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
               />
             </div>
           </aside>
