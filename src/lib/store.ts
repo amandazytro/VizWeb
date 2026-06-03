@@ -24,6 +24,8 @@ type ExperienceState = {
   setUiHidden: (v: boolean) => void;
   heading: number; // compass heading in degrees (0 = N), driven by the orbit scrub
   setHeading: (v: number) => void;
+  aptReady: boolean; // true once the hero has settled at frame 0 for Apartamentos
+  setAptReady: (v: boolean) => void;
 };
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -36,6 +38,8 @@ export const useExperience = create<ExperienceState>((set) => ({
   setUiHidden: (v) => set({ uiHidden: v }),
   heading: 0,
   setHeading: (v) => set({ heading: ((v % 360) + 360) % 360 }),
+  aptReady: false,
+  setAptReady: (v) => set({ aptReady: v }),
 }));
 
 /** Map a 0..1 mood value to a clock label (05:00 .. 21:00). */
