@@ -293,7 +293,7 @@ export default function ApartmentsOverlay() {
   if (!open || !aptReady) return null;
 
   return (
-    <div className="zy-fadein pointer-events-none fixed inset-0 z-40">
+    <div className="pointer-events-none fixed inset-0 z-40">
       {/* on-image hotspots (perspective grid) */}
       {facade && (
         <svg className="pointer-events-none absolute inset-0" width={facade.w} height={facade.h} viewBox={`0 0 ${facade.w} ${facade.h}`}>
@@ -446,7 +446,7 @@ export default function ApartmentsOverlay() {
       {/* detail panel (left) */}
       {selected && (
         <>
-          <aside className="zy-fadein pointer-events-auto absolute bottom-[16%] left-0 top-[22%] flex w-[min(440px,72%)] rounded-r-[1.4rem] border border-l-0 border-white/25 bg-white/10 py-5 pl-8 pr-6 shadow-[0_8px_60px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20 backdrop-blur-2xl backdrop-saturate-150 [text-shadow:0_1px_6px_rgba(0,0,0,0.35)]">
+          <aside className="zy-fadein pointer-events-auto absolute bottom-[26%] left-0 top-[22%] flex w-[min(440px,72%)] rounded-r-[1.4rem] border border-white/25 bg-white/10 py-5 pl-8 pr-6 shadow-[0_0_40px_16px_rgba(10,23,38,0.3),inset_0_1px_1px_rgba(255,255,255,0.35),inset_0_0_24px_rgba(255,255,255,0.12)] ring-1 ring-inset ring-white/15 backdrop-blur-2xl backdrop-saturate-150 [text-shadow:0_1px_6px_rgba(0,0,0,0.35)]">
             <div className="flex w-36 shrink-0 flex-col justify-center gap-4">
               <Detail label="Nº" value={selected.label} />
               <Detail label="Área" value={`${selected.area}m²`} />
@@ -463,7 +463,7 @@ export default function ApartmentsOverlay() {
               <img
                 src={plantaFor(selected.id)}
                 alt={`Planta — unidade ${selected.label}`}
-                className="pointer-events-none absolute right-0 top-1/2 h-[122%] w-auto max-w-none -translate-y-1/2 translate-x-[14%] object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
+                className="pointer-events-none absolute right-0 top-1/2 h-[95%] w-auto max-w-none -translate-y-1/2 translate-x-[50%] object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
               />
             </div>
           </aside>
