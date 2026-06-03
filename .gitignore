@@ -50,3 +50,6 @@ tmpclaude-*-cwd
 
 # heavy embedded-png svg (local only)
 Refs/planta.svg
+
+# dev server log
+.dev.log
