@@ -112,7 +112,7 @@ export const DEFAULT_FILTERS: Filters = {
   priceMax: PRICE_CAP,
   areaMin: AREA_FLOOR,
   areaMax: AREA_CAP,
-  active: [],
+  active: [...STATUS_ORDER], // all statuses lit by default
 };
 
 export function matches(u: Unit, f: Filters): boolean {
