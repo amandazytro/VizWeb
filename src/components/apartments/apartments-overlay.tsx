@@ -446,7 +446,7 @@ export default function ApartmentsOverlay() {
       {/* detail panel (left) */}
       {selected && (
         <>
-          <aside className="zy-fadein pointer-events-auto absolute bottom-44 left-0 top-16 flex w-[min(520px,82%)] overflow-hidden rounded-r-[2.5rem] border border-l-0 border-white/15 bg-[#0a1726]/45 py-7 pl-9 pr-7 shadow-[0_8px_60px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+          <aside className="zy-fadein pointer-events-auto absolute bottom-44 left-0 top-16 flex w-[min(520px,82%)] rounded-r-[2.5rem] border border-l-0 border-white/15 bg-[#0a1726]/45 py-7 pl-9 pr-7 shadow-[0_8px_60px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
             <div className="flex w-40 shrink-0 flex-col justify-center gap-5">
               <Detail label="Nº" value={selected.label} />
               <Detail label="Área" value={`${selected.area}m²`} />
@@ -457,9 +457,14 @@ export default function ApartmentsOverlay() {
                 <p className="text-3xl font-bold leading-tight text-white">{numBR(selected.price)}</p>
               </div>
             </div>
-            <div className="ml-7 min-h-0 flex-1 self-stretch overflow-hidden rounded-2xl bg-white">
+            {/* transparent floorplan, overflowing the blurred panel edge */}
+            <div className="relative ml-6 flex-1 self-stretch">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={plantaFor(selected.id)} alt={`Planta — unidade ${selected.label}`} className="h-full w-full object-cover" />
+              <img
+                src={plantaFor(selected.id)}
+                alt={`Planta — unidade ${selected.label}`}
+                className="pointer-events-none absolute left-0 top-1/2 h-[128%] w-[118%] max-w-none -translate-y-1/2 object-contain drop-shadow-[0_16px_38px_rgba(0,0,0,0.6)]"
+              />
             </div>
           </aside>
 
