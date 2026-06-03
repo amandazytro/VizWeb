@@ -136,8 +136,13 @@ export default function Hud() {
   const panel = useExperience((s) => s.panel);
   const openPanel = useExperience((s) => s.openPanel);
   const closePanel = useExperience((s) => s.closePanel);
+  const setAptReady = useExperience((s) => s.setAptReady);
   const activePanel: Panel = panel === "gallery" ? "none" : panel;
-  const onNav = (p: Panel) => (p === "none" ? closePanel() : openPanel(p));
+  const onNav = (p: Panel) => {
+    if (p === "none") return closePanel();
+    if (p === "apartments") setAptReady(false); // gate UI until the hero settles at frame 0
+    openPanel(p);
+  };
 
   return (
     <div className="pointer-events-none fixed inset-0 z-30 select-none">

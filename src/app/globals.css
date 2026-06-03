@@ -36,6 +36,20 @@ body {
   color: #fff;
 }
 
+@keyframes zyFade {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.zy-fadein {
+  animation: zyFade 0.35s ease both;
+}
+
 /* HUD time-of-day slider thumb */
 .zy-range::-webkit-slider-thumb {
   -webkit-appearance: none;
