@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useExperience } from "@/lib/store";
 import { CATEGORIES, SHOTS, type Category } from "@/lib/gallery";
 
@@ -21,18 +22,21 @@ export default function GalleryOverlay() {
     [tab]
   );
 
-  const close = () => {
+  const close = useCallback(() => {
     setIndex(null);
     setZoom(false);
-  };
+  }, []);
   const open_ = (i: number) => {
     setIndex(i);
     setZoom(false);
   };
-  const step = (d: number) => {
-    setZoom(false);
-    setIndex((i) => (i == null ? i : (i + d + shots.length) % shots.length));
-  };
+  const step = useCallback(
+    (d: number) => {
+      setZoom(false);
+      setIndex((i) => (i == null ? i : (i + d + shots.length) % shots.length));
+    },
+    [shots.length]
+  );
 
   // Reset when closing the panel; clamp lightbox when switching tabs.
   useEffect(() => {
@@ -40,10 +44,10 @@ export default function GalleryOverlay() {
       setTab("Todas");
       close();
     }
-  }, [open]);
+  }, [open, close]);
   useEffect(() => {
     close();
-  }, [tab]);
+  }, [tab, close]);
 
   // Keyboard: lightbox arrows/zoom/esc, else esc closes panel.
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function GalleryOverlay() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open, index, shots.length, closePanel]);
+  }, [open, index, step, close, closePanel]);
 
   if (!open) return null;
 
@@ -116,12 +120,13 @@ export default function GalleryOverlay() {
               onClick={() => open_(i)}
               className="group relative aspect-[4/3] overflow-hidden rounded-lg border border-white/10"
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src={s.src}
                 alt={s.title}
+                fill
                 loading="lazy"
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                sizes="(max-width:640px) 50vw, (max-width:1024px) 33vw, 25vw"
+                className="object-cover transition duration-500 group-hover:scale-105"
               />
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 text-left text-[11px] text-white/85 opacity-0 transition group-hover:opacity-100">
                 {s.title}

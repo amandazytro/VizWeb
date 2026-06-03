@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useExperience } from "@/lib/store";
 import { POIS, bgFor, type Poi, type PoiKey } from "@/lib/surroundings";
+import MarkerPill from "@/components/marker-pill";
 
 function Marker({ poi, active, onClick }: { poi: Poi; active: boolean; onClick: () => void }) {
   return (
@@ -23,11 +25,7 @@ function Marker({ poi, active, onClick }: { poi: Poi; active: boolean; onClick: 
           className="h-12 w-12 drop-shadow-[0_4px_10px_rgba(0,0,0,0.45)]"
         />
       ) : (
-        <span className="flex items-center gap-3 rounded-3xl border border-white/25 bg-white/15 py-1.5 pl-1.5 pr-5 shadow-[0_6px_20px_rgba(0,0,0,0.25)] backdrop-blur-md backdrop-saturate-150 transition hover:bg-white/25">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/poi/${poi.key}.svg`} alt="" className="h-11 w-11" />
-          <span className="text-base font-medium text-white">{poi.name}</span>
-        </span>
+        <MarkerPill src={`/poi/${poi.key}.svg`} label={poi.name} />
       )}
     </button>
   );
@@ -51,18 +49,18 @@ export default function SurroundingsOverlay() {
       onClick={() => setSel(null)}
     >
       {/* aerial map (home — no route) as the base */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={bgFor("home")} alt="Mapa dos arredores" className="absolute inset-0 h-full w-full object-cover" />
+      <Image src={bgFor("home")} alt="Mapa dos arredores" fill priority sizes="100vw" className="object-cover" />
 
       {/* selected POI map (route baked) revealed by an expanding clip → draws the route */}
       {selected && (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           key={selected.key}
           src={bgFor(selected.key)}
           alt=""
           aria-hidden="true"
-          className="route-draw absolute inset-0 h-full w-full object-cover"
+          fill
+          sizes="100vw"
+          className="route-draw object-cover"
         />
       )}
 
