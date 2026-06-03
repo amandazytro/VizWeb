@@ -47,3 +47,6 @@ tmpclaude-*-cwd
 
 # local-only claude settings (keep launch.json tracked)
 .claude/settings.local.json
+
+# heavy embedded-png svg (local only)
+Refs/planta.svg
