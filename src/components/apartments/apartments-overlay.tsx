@@ -194,14 +194,60 @@ function RangeSlider({
   );
 }
 
-function FieldRow({ k, v }: { k: string; v: string }) {
+const pad2 = (n: number) => String(n).padStart(2, "0");
+const numBR = (v: number) => new Intl.NumberFormat("pt-BR").format(v);
+
+function Detail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-white/8 py-1.5 text-[13px]">
-      <span className="text-white/50">{k}</span>
-      <span className="font-medium text-white">{v}</span>
+    <div className="border-b border-white/15 pb-3">
+      <p className="text-[13px] text-white/55">{label}</p>
+      <p className="text-2xl font-semibold leading-tight text-white">{value}</p>
     </div>
   );
 }
+
+function ActionBtn({
+  onClick,
+  ariaLabel,
+  accent = false,
+  children,
+}: {
+  onClick: () => void;
+  ariaLabel: string;
+  accent?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className={[
+        "flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition hover:brightness-110",
+        accent ? "bg-accent text-white" : "bg-white text-[#0a1726]",
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+const BackIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 14l-4-4 4-4" />
+    <path d="M5 10h9a5 5 0 0 1 0 10h-1" />
+  </svg>
+);
+const ExpandIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M8 3H3v5M21 8V3h-5M16 21h5v-5M3 16v5h5" />
+  </svg>
+);
+const BookmarkIcon = () => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
+  </svg>
+);
 
 export default function ApartmentsOverlay() {
   const panel = useExperience((s) => s.panel);
@@ -212,6 +258,12 @@ export default function ApartmentsOverlay() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<Unit | null>(null);
   const [hover, setHover] = useState<Unit | null>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setExpanded(false);
+  }, [selected]);
 
   const facade = useFaceMaps();
   const matched = useMemo(() => UNITS.filter((u) => matches(u, filters)), [filters]);
@@ -391,35 +443,53 @@ export default function ApartmentsOverlay() {
         </Card>
       </div>
 
-      {/* detail drawer */}
+      {/* detail panel (left) */}
       {selected && (
-        <aside className="pointer-events-auto absolute right-6 top-24 bottom-32 flex w-[min(340px,calc(100%-3rem))] flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#0a1726]/40 px-5 py-4 shadow-[0_8px_50px_rgba(0,0,0,0.45)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
-          <div className="flex shrink-0 items-start justify-between">
-            <div>
-              <p className="text-xs tracking-widest text-white/45">UNIDADE</p>
-              <h3 className="text-3xl font-light text-white">{selected.label}</h3>
+        <>
+          <aside className="zy-fadein pointer-events-auto absolute bottom-44 left-0 top-16 flex w-[min(520px,82%)] overflow-hidden rounded-r-[2.5rem] border border-l-0 border-white/15 bg-[#0a1726]/45 py-7 pl-9 pr-7 shadow-[0_8px_60px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+            <div className="flex w-40 shrink-0 flex-col justify-center gap-5">
+              <Detail label="Nº" value={selected.label} />
+              <Detail label="Área" value={`${selected.area}m²`} />
+              <Detail label="Dormitórios" value={pad2(selected.bedrooms)} />
+              <Detail label="Banheiros" value={pad2(selected.suites)} />
+              <div>
+                <p className="text-[13px] text-white/55">Valor R$:</p>
+                <p className="text-3xl font-bold leading-tight text-white">{numBR(selected.price)}</p>
+              </div>
             </div>
-            <span className="rounded-full px-2.5 py-1 text-xs font-medium" style={{ background: STATUS_META[selected.status].dot, color: "#05101c" }}>
-              {STATUS_META[selected.status].label}
-            </span>
+            <div className="ml-7 min-h-0 flex-1 self-stretch overflow-hidden rounded-2xl bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={plantaFor(selected.id)} alt={`Planta — unidade ${selected.label}`} className="h-full w-full object-cover" />
+            </div>
+          </aside>
+
+          {/* floating actions at the panel's right edge */}
+          <div
+            className="pointer-events-auto absolute top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3"
+            style={{ left: "calc(min(520px, 82%) - 24px)" }}
+          >
+            <ActionBtn onClick={() => setSelected(null)} ariaLabel="Voltar">
+              <BackIcon />
+            </ActionBtn>
+            <ActionBtn onClick={() => setExpanded(true)} ariaLabel="Expandir planta">
+              <ExpandIcon />
+            </ActionBtn>
+            <ActionBtn onClick={() => setSaved((s) => !s)} ariaLabel="Salvar" accent={saved}>
+              <BookmarkIcon />
+            </ActionBtn>
           </div>
-          <div className="mt-3 min-h-0 flex-1 overflow-hidden rounded-lg border border-white/15 bg-white">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={plantaFor(selected.id)} alt={`Planta — unidade ${selected.label}`} className="h-full w-full object-contain" />
-          </div>
-          <div className="mt-3 grid shrink-0 grid-cols-2 gap-x-5">
-            <FieldRow k="Andar" v={String(selected.floor)} />
-            <FieldRow k="Área" v={`${selected.area} m²`} />
-            <FieldRow k="Dormitórios" v={String(selected.bedrooms)} />
-            <FieldRow k="Suítes" v={String(selected.suites)} />
-            <FieldRow k="Vagas" v={String(selected.parking)} />
-            <FieldRow k="Vista" v={selected.view} />
-          </div>
-          <p className="mt-2 shrink-0 text-right text-lg font-semibold text-accent">{formatBRL(selected.price)}</p>
-          <button type="button" className="mt-2 w-full shrink-0 rounded-full bg-accent py-2.5 text-sm font-medium text-white transition hover:brightness-110">
-            Solicitar contato
-          </button>
-        </aside>
+        </>
+      )}
+
+      {/* expanded floorplan lightbox */}
+      {selected && expanded && (
+        <div
+          className="zy-fadein pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-10"
+          onClick={() => setExpanded(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={plantaFor(selected.id)} alt="Planta ampliada" className="max-h-full max-w-full rounded-xl bg-white object-contain" />
+        </div>
       )}
     </div>
   );
