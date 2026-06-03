@@ -52,27 +52,42 @@ export default function HeroSequence() {
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
-  // Preload the frame sequence.
+  // Preload the frame sequence with bounded concurrency, and let the
+  // experience start once a leading chunk is in — the rest streams in behind
+  // the scrub instead of blocking first paint on all COUNT frames.
   useEffect(() => {
     if (reduce) return;
     let cancelled = false;
     let loaded = 0;
-    const imgs: HTMLImageElement[] = [];
-    for (let i = 1; i <= COUNT; i++) {
-      const img = new Image();
-      img.decoding = "async";
-      img.src = url(i);
-      img.onload = img.onerror = () => {
-        if (cancelled) return;
-        loaded++;
-        setProgress(loaded / COUNT);
-        if (loaded === COUNT) {
-          imagesRef.current = imgs;
-          setReady(true);
-        }
-      };
-      imgs[i - 1] = img;
-    }
+    let next = 0;
+    const CONCURRENCY = 8;
+    const START_AT = Math.min(24, COUNT); // enough leading frames to begin scrubbing
+    const imgs: HTMLImageElement[] = new Array(COUNT);
+    imagesRef.current = imgs; // expose immediately so draw() can use loaded frames
+
+    const loadOne = (i: number) =>
+      new Promise<void>((resolve) => {
+        const img = new Image();
+        img.decoding = "async";
+        img.onload = img.onerror = () => {
+          if (!cancelled) {
+            loaded++;
+            setProgress(loaded / COUNT);
+            if (loaded >= START_AT) setReady(true);
+          }
+          resolve();
+        };
+        img.src = url(i + 1);
+        imgs[i] = img;
+      });
+
+    const worker = async () => {
+      while (!cancelled && next < COUNT) {
+        await loadOne(next++);
+      }
+    };
+    for (let w = 0; w < CONCURRENCY; w++) void worker();
+
     return () => {
       cancelled = true;
     };
@@ -114,7 +129,10 @@ export default function HeroSequence() {
     if (Math.abs(diff) < 0.05) {
       current.current = target.current;
       raf.current = 0;
-      if (locked.current) useExperience.getState().setAptReady(true);
+      // Only the Apartamentos flow waits on the hero settling at frame 0.
+      if (useExperience.getState().panel === "apartments") {
+        useExperience.getState().setAptReady(true);
+      }
     } else {
       current.current += diff * EASE;
       raf.current = requestAnimationFrame(tick);

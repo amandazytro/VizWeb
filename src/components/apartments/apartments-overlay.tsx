@@ -279,7 +279,9 @@ export default function ApartmentsOverlay() {
       return;
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") (selected ? setSelected(null) : closePanel());
+      if (e.key !== "Escape") return;
+      if (selected) setSelected(null);
+      else closePanel();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -314,15 +316,25 @@ export default function ApartmentsOverlay() {
                   fillOpacity={!on ? 0.05 : isSel ? 0.95 : isHov ? 0.9 : 0.5}
                   stroke={lit ? "#fff" : "rgba(255,255,255,0.55)"}
                   strokeWidth={isSel ? 2.2 : lit ? 1.6 : 1}
-                  className="cursor-pointer"
+                  className="cursor-pointer outline-none focus-visible:stroke-white"
                   style={{
                     pointerEvents: on ? "all" : "none",
                     transition: "fill-opacity 120ms ease, stroke 120ms ease",
                     filter: lit ? `drop-shadow(0 0 6px ${STATUS_META[u.status].dot})` : undefined,
                   }}
+                  role="button"
+                  tabIndex={on ? 0 : -1}
                   onMouseEnter={() => on && setHover(u)}
                   onMouseLeave={() => setHover((h) => (h?.id === u.id ? null : h))}
+                  onFocus={() => on && setHover(u)}
+                  onBlur={() => setHover((h) => (h?.id === u.id ? null : h))}
                   onClick={() => on && setSelected(u)}
+                  onKeyDown={(e) => {
+                    if (on && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      setSelected(u);
+                    }
+                  }}
                   aria-label={`Unidade ${u.label} — ${STATUS_META[u.status].label}`}
                 />
               );
