@@ -194,9 +194,15 @@ export default function HeroSequence() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, reduce]);
 
+  // Freeze the scrub whenever any panel/overlay is open — click-drag and
+  // scroll only drive the hero on the Explorar screen (panel === "none").
+  useEffect(() => {
+    locked.current = panel !== "none";
+    if (panel === "none" && rootRef.current) rootRef.current.style.cursor = "";
+  }, [panel]);
+
   // Apartamentos: animate the hero back to frame 0, then unlock the UI.
   useEffect(() => {
-    locked.current = panel === "apartments";
     if (panel !== "apartments") return;
     if (!ready || reduce) {
       target.current = 0;
@@ -239,7 +245,10 @@ export default function HeroSequence() {
   return (
     <section
       ref={rootRef}
-      className="absolute inset-0 h-[100svh] w-full cursor-grab overflow-hidden bg-[#05101c] active:cursor-grabbing"
+      className={[
+        "absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]",
+        panel === "none" ? "cursor-grab active:cursor-grabbing" : "",
+      ].join(" ")}
       aria-label="Empreendimento — role ou arraste para percorrer o vídeo"
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />

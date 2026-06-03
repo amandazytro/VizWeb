@@ -124,20 +124,20 @@ body {
   -webkit-appearance: none;
   appearance: none;
   pointer-events: auto;
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   border-radius: 9999px;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.6);
+  background: #c4b5fd;
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.45);
   cursor: pointer;
 }
 .zy-dual::-moz-range-thumb {
   pointer-events: auto;
-  width: 14px;
-  height: 14px;
+  width: 17px;
+  height: 17px;
   border: none;
   border-radius: 9999px;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.6);
+  background: #c4b5fd;
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.45);
   cursor: pointer;
 }

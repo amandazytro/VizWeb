@@ -122,7 +122,7 @@ function Card({ className = "", children }: { className?: string; children: Reac
   return (
     <div
       className={[
-        "pointer-events-auto rounded-2xl border border-white/15 bg-[#0a1726]/35 px-5 py-4 ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150",
+        "pointer-events-auto rounded-3xl border border-white/20 bg-[#26344f]/40 px-5 py-2.5 ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150",
         className,
       ].join(" ")}
     >
@@ -131,15 +131,9 @@ function Card({ className = "", children }: { className?: string; children: Reac
   );
 }
 
-function brlShort(v: number): string {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(v % 1_000_000 ? 1 : 0).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)} mil`;
-  return formatBRL(v);
-}
-
 function RangeSlider({
   label,
-  display,
+  format,
   min,
   max,
   step = 1,
@@ -149,7 +143,7 @@ function RangeSlider({
   onMax,
 }: {
   label: string;
-  display: string;
+  format: (v: number) => string;
   min: number;
   max: number;
   step?: number;
@@ -161,34 +155,35 @@ function RangeSlider({
   const pct = (v: number) => ((v - min) / (max - min)) * 100;
   return (
     <div>
-      <div className="mb-2 flex items-baseline justify-between gap-2">
-        <span className="text-[11px] tracking-widest text-white/55">{label}</span>
-        <span className="text-xs font-medium text-white">{display}</span>
-      </div>
-      <div className="relative flex h-4 items-center">
-        <div className="absolute h-1 w-full rounded-full bg-white/20" />
-        <div
-          className="absolute h-1 rounded-full bg-accent"
-          style={{ left: `${pct(vmin)}%`, right: `${100 - pct(vmax)}%` }}
-        />
-        <input
-          type="range"
-          className="zy-dual"
-          min={min}
-          max={max}
-          step={step}
-          value={vmin}
-          onChange={(e) => onMin(Math.min(Number(e.target.value), vmax - step))}
-        />
-        <input
-          type="range"
-          className="zy-dual"
-          min={min}
-          max={max}
-          step={step}
-          value={vmax}
-          onChange={(e) => onMax(Math.max(Number(e.target.value), vmin + step))}
-        />
+      <p className="mb-2.5 text-center text-sm font-medium text-white">{label}</p>
+      <div className="flex items-center gap-2.5">
+        <span className="shrink-0 whitespace-nowrap text-[11px] text-white/55">{format(vmin)}</span>
+        <div className="relative flex h-4 flex-1 items-center">
+          <div className="absolute h-1.5 w-full rounded-full bg-white/20" />
+          <div
+            className="absolute h-1.5 rounded-full bg-accent"
+            style={{ left: `${pct(vmin)}%`, right: `${100 - pct(vmax)}%` }}
+          />
+          <input
+            type="range"
+            className="zy-dual"
+            min={min}
+            max={max}
+            step={step}
+            value={vmin}
+            onChange={(e) => onMin(Math.min(Number(e.target.value), vmax - step))}
+          />
+          <input
+            type="range"
+            className="zy-dual"
+            min={min}
+            max={max}
+            step={step}
+            value={vmax}
+            onChange={(e) => onMax(Math.max(Number(e.target.value), vmin + step))}
+          />
+        </div>
+        <span className="shrink-0 whitespace-nowrap text-[11px] text-white/55">{format(vmax)}</span>
       </div>
     </div>
   );
@@ -317,8 +312,8 @@ export default function ApartmentsOverlay() {
                   points={insetQuad(corners, 1.2)}
                   fill={STATUS_META[u.status].dot}
                   fillOpacity={!on ? 0.05 : isSel ? 0.95 : isHov ? 0.9 : 0.5}
-                  stroke={lit ? "#fff" : "rgba(255,255,255,0.22)"}
-                  strokeWidth={isSel ? 2 : lit ? 1.4 : 0.6}
+                  stroke={lit ? "#fff" : "rgba(255,255,255,0.55)"}
+                  strokeWidth={isSel ? 2.2 : lit ? 1.6 : 1}
                   className="cursor-pointer"
                   style={{
                     pointerEvents: on ? "all" : "none",
@@ -376,12 +371,12 @@ export default function ApartmentsOverlay() {
         })}
       </div>
 
-      {/* bottom-left: Andar (card) + Dormitórios (card) */}
-      <div className="absolute bottom-6 left-6 flex w-60 flex-col gap-3">
-        <Card>
+      {/* bottom-left: Andar (card) + Dormitórios (card) — side by side */}
+      <div className="absolute bottom-6 left-6 flex w-[500px] items-stretch gap-3">
+        <Card className="flex-1">
           <RangeSlider
-            label="ANDAR"
-            display={`${filters.floorMin}º — ${filters.floorMax}º`}
+            label="Andar"
+            format={(v) => `${v}º`}
             min={FLOOR_MIN}
             max={FLOOR_MAX}
             vmin={filters.floorMin}
@@ -390,36 +385,39 @@ export default function ApartmentsOverlay() {
             onMax={(v) => set("floorMax", v)}
           />
         </Card>
-        <Card>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-[11px] tracking-widest text-white/55">DORMITÓRIOS</p>
+        <Card className="flex flex-1 items-center">
+          <div className="flex w-full items-center justify-between gap-3">
+            <p className="text-sm font-medium text-white">Dormitórios</p>
             <div className="flex gap-2">
-              {[1, 2, 3].map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => set("bedrooms", filters.bedrooms === n ? null : n)}
-                  className={[
-                    "h-8 w-8 rounded-full text-xs font-medium transition",
-                    filters.bedrooms === n
-                      ? "bg-accent text-white"
-                      : "bg-white/8 text-white/70 hover:bg-white/15",
-                  ].join(" ")}
-                >
-                  {n}
-                </button>
-              ))}
+              {[1, 2, 3].map((n) => {
+                const on = filters.bedrooms === n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => set("bedrooms", on ? null : n)}
+                    className={[
+                      "h-9 w-9 rounded-2xl text-sm font-semibold transition",
+                      on
+                        ? "bg-gradient-to-b from-[#8b6dff] to-[#5b3fd6] text-white shadow-[0_6px_16px_-4px_rgba(124,92,255,0.7)]"
+                        : "bg-white/10 text-white/55 hover:bg-white/20",
+                    ].join(" ")}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </Card>
       </div>
 
-      {/* bottom-right: Valor (card) + Metragem (card) */}
-      <div className="absolute bottom-6 right-6 flex w-64 flex-col gap-3">
-        <Card>
+      {/* bottom-right: Valor (card) + Metragem (card) — side by side */}
+      <div className="absolute bottom-6 right-6 flex w-[680px] items-stretch gap-3">
+        <Card className="flex-1">
           <RangeSlider
-            label="VALOR"
-            display={`${brlShort(filters.priceMin)} — ${brlShort(filters.priceMax)}`}
+            label="Valor máx."
+            format={(v) => `R$${numBR(v)}`}
             min={PRICE_FLOOR}
             max={PRICE_CAP}
             step={10000}
@@ -429,10 +427,10 @@ export default function ApartmentsOverlay() {
             onMax={(v) => set("priceMax", v)}
           />
         </Card>
-        <Card>
+        <Card className="flex-1">
           <RangeSlider
-            label="METRAGEM"
-            display={`${filters.areaMin} — ${filters.areaMax} m²`}
+            label="Metragem"
+            format={(v) => `${v}m²`}
             min={AREA_FLOOR}
             max={AREA_CAP}
             vmin={filters.areaMin}
