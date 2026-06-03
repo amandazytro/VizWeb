@@ -446,7 +446,7 @@ export default function ApartmentsOverlay() {
       {/* detail panel (left) */}
       {selected && (
         <>
-          <aside className="zy-fadein pointer-events-auto absolute bottom-44 left-0 top-16 flex w-[min(520px,82%)] rounded-r-[2.5rem] border border-l-0 border-white/15 bg-[#0a1726]/45 py-7 pl-9 pr-7 shadow-[0_8px_60px_rgba(0,0,0,0.5)] ring-1 ring-inset ring-white/10 backdrop-blur-2xl backdrop-saturate-150">
+          <aside className="zy-fadein pointer-events-auto absolute bottom-52 left-0 top-28 flex w-[min(440px,72%)] rounded-r-[1.4rem] border border-l-0 border-white/25 bg-white/10 py-6 pl-8 pr-6 shadow-[0_8px_60px_rgba(0,0,0,0.35)] ring-1 ring-inset ring-white/20 backdrop-blur-2xl backdrop-saturate-150 [text-shadow:0_1px_6px_rgba(0,0,0,0.35)]">
             <div className="flex w-40 shrink-0 flex-col justify-center gap-5">
               <Detail label="Nº" value={selected.label} />
               <Detail label="Área" value={`${selected.area}m²`} />
@@ -471,7 +471,7 @@ export default function ApartmentsOverlay() {
           {/* floating actions at the panel's right edge */}
           <div
             className="pointer-events-auto absolute top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3"
-            style={{ left: "calc(min(520px, 82%) - 24px)" }}
+            style={{ left: "calc(min(440px, 72%) - 24px)" }}
           >
             <ActionBtn onClick={() => setSelected(null)} ariaLabel="Voltar">
               <BackIcon />
