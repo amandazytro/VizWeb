@@ -338,23 +338,25 @@ export default function ApartmentsOverlay() {
           />
         </Card>
         <Card>
-          <p className="mb-2 text-[11px] tracking-widest text-white/55">DORMITÓRIOS</p>
-          <div className="flex gap-2">
-            {[1, 2, 3].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => set("bedrooms", filters.bedrooms === n ? null : n)}
-                className={[
-                  "h-8 w-8 rounded-full text-xs font-medium transition",
-                  filters.bedrooms === n
-                    ? "bg-accent text-white"
-                    : "bg-white/8 text-white/70 hover:bg-white/15",
-                ].join(" ")}
-              >
-                {n}
-              </button>
-            ))}
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[11px] tracking-widest text-white/55">DORMITÓRIOS</p>
+            <div className="flex gap-2">
+              {[1, 2, 3].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => set("bedrooms", filters.bedrooms === n ? null : n)}
+                  className={[
+                    "h-8 w-8 rounded-full text-xs font-medium transition",
+                    filters.bedrooms === n
+                      ? "bg-accent text-white"
+                      : "bg-white/8 text-white/70 hover:bg-white/15",
+                  ].join(" ")}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
           </div>
         </Card>
       </div>
