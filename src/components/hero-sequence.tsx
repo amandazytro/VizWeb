@@ -25,7 +25,9 @@ export default function HeroSequence() {
   const drawn = useRef(-1);
   const raf = useRef(0);
   const touchY = useRef<number | null>(null);
+  const locked = useRef(false);
 
+  const panel = useExperience((s) => s.panel);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [reduce, setReduce] = useState(false);
@@ -117,6 +119,7 @@ export default function HeroSequence() {
     draw(0);
 
     const advance = (d: number) => {
+      if (locked.current) return; // frozen while Apartamentos is open
       target.current = Math.min(COUNT - 1, Math.max(0, target.current + d));
       kick();
     };
@@ -148,6 +151,21 @@ export default function HeroSequence() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, reduce]);
+
+  // Apartamentos freezes the hero at frame 0 (scroll disabled).
+  useEffect(() => {
+    locked.current = panel === "apartments";
+    if (panel === "apartments") {
+      target.current = 0;
+      current.current = 0;
+      if (ready && !reduce) {
+        drawn.current = -1;
+        draw(0);
+        useExperience.getState().setHeading(0);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel, ready, reduce]);
 
   if (reduce) {
     return (
