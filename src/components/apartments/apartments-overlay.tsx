@@ -206,6 +206,7 @@ function FieldRow({ k, v }: { k: string; v: string }) {
 export default function ApartmentsOverlay() {
   const panel = useExperience((s) => s.panel);
   const closePanel = useExperience((s) => s.closePanel);
+  const aptReady = useExperience((s) => s.aptReady);
   const open = panel === "apartments";
 
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -237,10 +238,10 @@ export default function ApartmentsOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, selected, closePanel]);
 
-  if (!open) return null;
+  if (!open || !aptReady) return null;
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-40">
+    <div className="zy-fadein pointer-events-none fixed inset-0 z-40">
       {/* on-image hotspots (perspective grid) */}
       {facade && (
         <svg className="pointer-events-none absolute inset-0" width={facade.w} height={facade.h} viewBox={`0 0 ${facade.w} ${facade.h}`}>

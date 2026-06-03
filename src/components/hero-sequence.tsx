@@ -98,6 +98,7 @@ export default function HeroSequence() {
     if (Math.abs(diff) < 0.05) {
       current.current = target.current;
       raf.current = 0;
+      if (locked.current) useExperience.getState().setAptReady(true);
     } else {
       current.current += diff * EASE;
       raf.current = requestAnimationFrame(tick);
@@ -152,17 +153,28 @@ export default function HeroSequence() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, reduce]);
 
-  // Apartamentos freezes the hero at frame 0 (scroll disabled).
+  // Apartamentos: animate the hero back to frame 0, then unlock the UI.
   useEffect(() => {
     locked.current = panel === "apartments";
-    if (panel === "apartments") {
+    if (panel !== "apartments") return;
+    if (!ready || reduce) {
       target.current = 0;
       current.current = 0;
-      if (ready && !reduce) {
-        drawn.current = -1;
-        draw(0);
-        useExperience.getState().setHeading(0);
-      }
+      useExperience.getState().setAptReady(true);
+      return;
+    }
+    if (current.current <= 0.5) {
+      // already at frame 0 — show the UI immediately
+      current.current = 0;
+      target.current = 0;
+      drawn.current = -1;
+      draw(0);
+      useExperience.getState().setHeading(0);
+      useExperience.getState().setAptReady(true);
+    } else {
+      // ease to frame 0; tick() flags aptReady when it settles
+      target.current = 0;
+      kick();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel, ready, reduce]);
