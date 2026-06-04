@@ -4,10 +4,12 @@ import ApartmentsOverlay from "@/components/apartments/apartments-overlay";
 import GalleryOverlay from "@/components/gallery/gallery-overlay";
 import SurroundingsOverlay from "@/components/surroundings/surroundings-overlay";
 import AmenitiesOverlay from "@/components/amenities/amenities-overlay";
+import PanelUrlSync from "@/components/panel-url-sync";
 
 export default function Home() {
   return (
     <main className="relative h-[100svh] w-full overflow-hidden">
+      <PanelUrlSync />
       <HeroSequence />
       <SurroundingsOverlay />
       <AmenitiesOverlay />

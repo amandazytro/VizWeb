@@ -51,6 +51,21 @@ body {
   animation: zyFade 0.35s ease both;
 }
 
+/* amenity detail: zoom + fade into the full-screen render */
+@keyframes amenityZoom {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.amenity-zoom {
+  animation: amenityZoom 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* route "draw": reveal the POI map (only the baked route differs from home)
    by expanding a circle from the development origin → looks like the route
    is being traced from start to finish. */
