@@ -8,6 +8,8 @@ import { useExperience } from "@/lib/store";
 const COUNT = 299;
 const PAD = 4;
 const BASE = "/frames/explore";
+// Default frame on load (~12s @ 13fps); user scrubs forward/back from here.
+const START_FRAME = 156;
 const url = (n: number) =>
   `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
@@ -35,8 +37,8 @@ export default function HeroSequence() {
   const rootRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
-  const target = useRef(0); // desired frame (float)
-  const current = useRef(0); // eased frame (float)
+  const target = useRef(START_FRAME); // desired frame (float)
+  const current = useRef(START_FRAME); // eased frame (float)
   const drawn = useRef(-1);
   const raf = useRef(0);
   const touchY = useRef<number | null>(null);
@@ -59,11 +61,15 @@ export default function HeroSequence() {
     if (reduce) return;
     let cancelled = false;
     let loaded = 0;
-    let next = 0;
     const CONCURRENCY = 8;
     const START_AT = Math.min(24, COUNT); // enough leading frames to begin scrubbing
     const imgs: HTMLImageElement[] = new Array(COUNT);
     imagesRef.current = imgs; // expose immediately so draw() can use loaded frames
+
+    // Load starting at the default frame (then wrap) so the first paint isn't blank.
+    const order: number[] = [];
+    for (let i = 0; i < COUNT; i++) order.push((START_FRAME + i) % COUNT);
+    let oi = 0;
 
     const loadOne = (i: number) =>
       new Promise<void>((resolve) => {
@@ -74,6 +80,8 @@ export default function HeroSequence() {
             loaded++;
             setProgress(loaded / COUNT);
             if (loaded >= START_AT) setReady(true);
+            // draw the default frame as soon as it lands
+            if (i === Math.round(current.current) && drawn.current !== i) draw(i);
           }
           resolve();
         };
@@ -82,8 +90,8 @@ export default function HeroSequence() {
       });
 
     const worker = async () => {
-      while (!cancelled && next < COUNT) {
-        await loadOne(next++);
+      while (!cancelled && oi < order.length) {
+        await loadOne(order[oi++]);
       }
     };
     for (let w = 0; w < CONCURRENCY; w++) void worker();
@@ -151,7 +159,7 @@ export default function HeroSequence() {
   useEffect(() => {
     if (!ready || reduce) return;
     resize();
-    draw(0);
+    draw(START_FRAME);
 
     const advance = (d: number) => {
       if (locked.current) return; // frozen while Apartamentos is open
@@ -219,26 +227,26 @@ export default function HeroSequence() {
     if (panel === "none" && rootRef.current) rootRef.current.style.cursor = "";
   }, [panel]);
 
-  // Apartamentos: animate the hero back to frame 0, then unlock the UI.
+  // Apartamentos: animate the hero to the default frame, then unlock the UI.
   useEffect(() => {
     if (panel !== "apartments") return;
     if (!ready || reduce) {
-      target.current = 0;
-      current.current = 0;
+      target.current = START_FRAME;
+      current.current = START_FRAME;
       useExperience.getState().setAptReady(true);
       return;
     }
-    if (current.current <= 0.5) {
-      // already at frame 0 — show the UI immediately
-      current.current = 0;
-      target.current = 0;
+    if (Math.abs(current.current - START_FRAME) <= 0.5) {
+      // already at the default frame — show the UI immediately
+      current.current = START_FRAME;
+      target.current = START_FRAME;
       drawn.current = -1;
-      draw(0);
-      useExperience.getState().setHeading(0);
+      draw(START_FRAME);
+      useExperience.getState().setHeading((START_FRAME / (COUNT - 1)) * 360);
       useExperience.getState().setAptReady(true);
     } else {
-      // ease to frame 0; tick() flags aptReady when it settles
-      target.current = 0;
+      // ease to the default frame; tick() flags aptReady when it settles
+      target.current = START_FRAME;
       kick();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
