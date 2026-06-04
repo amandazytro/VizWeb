@@ -87,11 +87,66 @@ export default function AmenitiesOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sel, galleryOpen, closeDetail]);
 
-  // Mouse wheel scrolls the horizontal gallery track.
-  const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (!trackRef.current) return;
-    trackRef.current.scrollLeft += e.deltaY + e.deltaX;
+  // Custom scrollbar state (thumb position + visible ratio).
+  const railRef = useRef<HTMLDivElement>(null);
+  const dragBar = useRef(false);
+  const [bar, setBar] = useState({ ratio: 0, vis: 0.3 });
+
+  const syncBar = useCallback(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setBar({
+      ratio: max > 0 ? el.scrollLeft / max : 0,
+      vis: el.scrollWidth > 0 ? el.clientWidth / el.scrollWidth : 1,
+    });
+  }, []);
+
+  // Wheel → horizontal scroll. Native + non-passive so we preventDefault the
+  // browser's own vertical-wheel→horizontal fallback (which otherwise stacks
+  // with our manual scroll and makes the strip jitter).
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const el = trackRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      el.scrollLeft += e.deltaY + e.deltaX;
+      syncBar();
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [galleryOpen, sel, syncBar]);
+
+  // Drag the scrollbar (hold + drag) to move the strip, same as the wheel.
+  const barFromX = (clientX: number) => {
+    const rail = railRef.current;
+    const el = trackRef.current;
+    if (!rail || !el) return;
+    const r = rail.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    el.scrollLeft = ratio * (el.scrollWidth - el.clientWidth);
+    syncBar();
   };
+  const onBarDown = (e: React.PointerEvent) => {
+    dragBar.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    barFromX(e.clientX);
+  };
+  const onBarMove = (e: React.PointerEvent) => {
+    if (dragBar.current) barFromX(e.clientX);
+  };
+  const onBarUp = (e: React.PointerEvent) => {
+    dragBar.current = false;
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+  };
+
+  // Recompute thumb size once the gallery (and its images) lay out.
+  useEffect(() => {
+    if (!galleryOpen) return;
+    const id = requestAnimationFrame(syncBar);
+    return () => cancelAnimationFrame(id);
+  }, [galleryOpen, sel, syncBar]);
 
   if (!open) return null;
 
@@ -151,13 +206,13 @@ export default function AmenitiesOverlay() {
             <>
               <div className="absolute inset-0 bg-black/40" />
 
-              {/* horizontal scrollable strip (wheel-driven); title + back scroll with it */}
+              {/* scrollable strip — images + text + icons all move together */}
               <div
                 ref={trackRef}
-                onWheel={onWheel}
+                onScroll={syncBar}
                 className="pointer-events-auto absolute inset-0 flex items-start gap-10 overflow-x-auto overflow-y-hidden pt-[10vh] pl-[6vw] pr-[10vw] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {/* left column — back button + vertical title (scroll with the strip) */}
+                {/* left column — back button + vertical title */}
                 <div className="relative h-[117vh] w-[92px] shrink-0">
                   <button
                     type="button"
@@ -175,12 +230,12 @@ export default function AmenitiesOverlay() {
                   </span>
                 </div>
 
-                {/* 1 — piscina (native ratio, no crop) — sets top + baseline */}
+                {/* 1 */}
                 <div className="relative ml-15 h-[72vh] aspect-[1920/1078] shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
                   <Image src={sel.gallery.images[0]} alt={`${sel.name} 1`} fill priority sizes="55vw" className="object-cover" />
                 </div>
 
-                {/* 2 — top aligned with piscina; text starts at piscina's base; third image beside */}
+                {/* 2 (top) + text below, 3 beside */}
                 <div className="flex shrink-0 items-start gap-8">
                   <div className="relative h-[72vh] shrink-0">
                     <div className="relative h-[40vh] aspect-[866/428] overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
@@ -205,25 +260,17 @@ export default function AmenitiesOverlay() {
                   </div>
                 </div>
 
-                {/* 3 — last image (vertical) — PNG has big baked corners; scale them out and clip to match the others */}
+                {/* 4 (vertical) */}
                 <div className="relative h-[72vh] aspect-[588/735] shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
                   <Image src={sel.gallery.images[3]} alt={`${sel.name} 4`} fill sizes="40vw" style={{ transform: "scale(1.1)" }} className="object-cover" />
                 </div>
 
-                {/* save + back icons — gap from the last image, aligned to its base */}
+                {/* save + back icons */}
                 <div
-                  style={{
-                    height: "72vh",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "flex-end",
-                    gap: "0.75rem",
-                    marginLeft: "-0.5rem",
-                    flexShrink: 0,
-                  }}
+                  style={{ height: "72vh", display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: "0.75rem", marginLeft: "-0.5rem", flexShrink: 0 }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/areas-comuns/icons/salvar.svg" alt="Salvar" className="h- w-11" />
+                  <img src="/areas-comuns/icons/salvar.svg" alt="Salvar" className="h-11 w-11" />
                   <button
                     type="button"
                     onClick={() => setGalleryOpen(false)}
@@ -235,7 +282,7 @@ export default function AmenitiesOverlay() {
                   </button>
                 </div>
 
-                {/* end — text (orange arrow vector, decorative); X-aligned with the save/back icons */}
+                {/* end text (X-aligned with the icons) */}
                 <div style={{ marginLeft: "-84px" }} className="flex h-[30vh] w-[300px] shrink-0 flex-col justify-center gap-5">
                   <span
                     aria-hidden="true"
@@ -249,6 +296,23 @@ export default function AmenitiesOverlay() {
                   <h3 className="text-2xl font-semibold leading-tight text-[#FF7A1A]">{sel.gallery.heading}</h3>
                   <p className="text-sm leading-relaxed text-white/75">{sel.gallery.description}</p>
                 </div>
+              </div>
+
+              {/* drag scrollbar (fixed, below the first image) */}
+              <div
+                ref={railRef}
+                onPointerDown={onBarDown}
+                onPointerMove={onBarMove}
+                onPointerUp={onBarUp}
+                className="pointer-events-auto absolute bottom-[15vh] left-[16vw] z-10 h-1 w-[170px] cursor-pointer rounded-full bg-white/15"
+              >
+                <div
+                  className="absolute top-0 h-full rounded-full bg-white/50"
+                  style={{
+                    width: `${Math.max(bar.vis * 100, 14)}%`,
+                    left: `${bar.ratio * (100 - Math.max(bar.vis * 100, 14))}%`,
+                  }}
+                />
               </div>
             </>
           )}
