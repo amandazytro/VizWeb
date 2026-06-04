@@ -146,7 +146,7 @@ export default function Hud() {
       {/* ── Bottom-center: primary nav + hide toggle (slide together) ── */}
       <div
         className={[
-          "absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 transition-transform duration-300 ease-out",
+          "absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 transition-transform duration-300 ease-out",
           dockHidden ? "translate-y-[68%]" : "",
         ].join(" ")}
       >

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useExperience } from "@/lib/store";
 import { AMENITIES, type Amenity } from "@/lib/amenities";
 import MarkerPill from "@/components/marker-pill";
+import Panorama360 from "@/components/Panorama360";
 
 function GalleryIcon({ className = "" }: { className?: string }) {
   return (
@@ -46,19 +47,30 @@ export default function AmenitiesOverlay() {
   const setDockMinimized = useExperience((s) => s.setDockMinimized);
   const [sel, setSel] = useState<Amenity | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [pano360, setPano360] = useState<string | null>(null);
+  const [intro, setIntro] = useState<string | null>(null); // transition video playing
   const trackRef = useRef<HTMLDivElement>(null);
 
   const closeDetail = useCallback(() => {
     setSel(null);
     setGalleryOpen(false);
+    setPano360(null);
+    setIntro(null);
     setDockMinimized(false);
   }, [setDockMinimized]);
 
   const select = useCallback(
     (a: Amenity) => {
+      if (a.pano360) {
+        // 360 amenities open the panorama viewer directly
+        setPano360(a.pano360);
+        setDockMinimized(true);
+        return;
+      }
       if (!a.detail) return; // only amenities with a full-screen render open
       setSel(a);
       setGalleryOpen(false);
+      setIntro(a.intro ?? null); // play transition first, if any
       setDockMinimized(true);
     },
     [setDockMinimized]
@@ -154,7 +166,7 @@ export default function AmenitiesOverlay() {
     <div className="pointer-events-none fixed inset-0 z-20 [text-shadow:0_1px_6px_rgba(0,0,0,0.4)]">
       {/* aerial render of the amenities */}
       <Image
-        src="/areas-comuns/bg.webp"
+        src="/areas-comuns/bg-v2.webp"
         alt="Áreas comuns do empreendimento"
         fill
         priority
@@ -163,22 +175,55 @@ export default function AmenitiesOverlay() {
       />
 
       {/* amenity markers (hidden while a detail is open) */}
-      {!sel && AMENITIES.map((a) => <Marker key={a.key} amenity={a} onSelect={select} />)}
+      {!sel && !pano360 && AMENITIES.map((a) => <Marker key={a.key} amenity={a} onSelect={select} />)}
+
+      {/* 360 viewer (opened directly from a marker) */}
+      {pano360 && (
+        <div className="pointer-events-auto absolute inset-0 z-20">
+          <Panorama360 src={pano360} onClose={closeDetail} />
+        </div>
+      )}
+
+      {/* transition video — plays once, then reveals the detail */}
+      {intro && (
+        <video
+          src={intro}
+          autoPlay
+          muted
+          playsInline
+          onEnded={() => setIntro(null)}
+          className="pointer-events-auto absolute inset-0 z-30 h-full w-full bg-black object-cover"
+        />
+      )}
 
       {/* full-screen detail render */}
       {sel?.detail && (
         <div key={sel.key} className="amenity-zoom absolute inset-0 z-10">
-          <Image
-            src={sel.detail}
-            alt={sel.name}
-            fill
-            priority
-            sizes="100vw"
-            className={[
-              "object-cover transition duration-500",
-              galleryOpen ? "scale-110 blur-2xl" : "",
-            ].join(" ")}
-          />
+          {galleryOpen ? (
+            // gallery backdrop = static blurred still (no live video blur → fast)
+            <Image
+              src={sel.gallery?.images[0] ?? ""}
+              alt=""
+              aria-hidden="true"
+              fill
+              sizes="100vw"
+              className="scale-110 object-cover blur-2xl"
+            />
+          ) : /\.(mp4|webm)$/i.test(sel.detail) ? (
+            <video
+              src={sel.detail}
+              autoPlay
+              loop
+              muted
+              playsInline
+              onLoadedMetadata={(e) => {
+                e.currentTarget.playbackRate = sel.detailRate ?? 1;
+              }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : (
+            <Image src={sel.detail} alt={sel.name} fill priority sizes="100vw" className="object-cover" />
+          )}
 
           {/* ── DETAIL state ── */}
           {!galleryOpen && (
@@ -241,7 +286,7 @@ export default function AmenitiesOverlay() {
                     <div className="relative h-[40vh] aspect-[866/428] overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
                       <Image src={sel.gallery.images[1]} alt={`${sel.name} 2`} fill sizes="40vw" className="object-cover" />
                     </div>
-                    <div className="absolute bottom-0 left-0 w-[300px] max-w-[50vw]">
+                    <div className="absolute left-0 top-[43vh] w-[300px] max-w-[50vw]">
                       <span
                         aria-hidden="true"
                         style={{ backgroundColor: "#FF7A1A", boxShadow: "0 8px 24px -6px rgba(255,122,26,0.7)" }}
