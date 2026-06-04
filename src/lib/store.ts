@@ -23,6 +23,10 @@ type ExperienceState = {
   setHeading: (v: number) => void;
   aptReady: boolean; // true once the hero has settled at frame 0 for Apartamentos
   setAptReady: (v: boolean) => void;
+  dockMinimized: boolean; // overlays can force the HUD dock into its minimized peek
+  setDockMinimized: (v: boolean) => void;
+  navTick: number; // bumped on every dock navigation so overlays reset to their base view
+  bumpNav: () => void;
 };
 
 export const useExperience = create<ExperienceState>((set) => ({
@@ -33,4 +37,8 @@ export const useExperience = create<ExperienceState>((set) => ({
   setHeading: (v) => set({ heading: ((v % 360) + 360) % 360 }),
   aptReady: false,
   setAptReady: (v) => set({ aptReady: v }),
+  dockMinimized: false,
+  setDockMinimized: (v) => set({ dockMinimized: v }),
+  navTick: 0,
+  bumpNav: () => set((s) => ({ navTick: s.navTick + 1 })),
 }));
