@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useExperience, type Panel } from "@/lib/store";
 
 function ChevronIcon({ className = "" }: { className?: string }) {
@@ -94,41 +94,6 @@ function PinIcon({ className = "" }: { className?: string }) {
     </svg>
   );
 }
-function MediaIcon({ className = "" }: { className?: string }) {
-  // Custom glyph (Refs/galeria.svg), cropped to the icon bounds.
-  return (
-    <svg viewBox="47 46 30 29" className={className} fill="currentColor">
-      <path d="M67.2492 54.4438C69.0678 54.2009 70.2035 55.5359 70.9225 56.9833C72.5538 60.2663 73.7693 63.8955 75.3602 67.2124C76.4984 70.5335 74.2582 73.8627 70.7562 74.2188L52.6459 74.2155C48.7819 73.6678 46.8424 70.1212 48.4098 66.5879C49.0163 65.2198 49.8907 63.5246 50.6316 62.2185C51.5018 60.6852 52.551 59.5625 54.5149 59.8244C56.7963 60.1276 57.3264 62.9314 59.3709 63.0273C60.3041 63.071 61.0862 62.4564 61.5927 61.7451C62.9711 59.8087 64.678 54.7883 67.2484 54.4446L67.2492 54.4438Z" />
-      <path d="M54.3612 46.9013C59.8363 46.2957 61.5482 53.4962 56.8072 55.4294C53.2633 56.8743 49.6362 53.6532 50.6971 50.0389C51.1541 48.4833 52.7047 47.0847 54.3612 46.9021V46.9013Z" />
-    </svg>
-  );
-}
-function CornerButton({
-  icon: Icon,
-  label,
-  active = false,
-  onClick,
-}: {
-  icon: (p: { className?: string }) => ReactNode;
-  label: string;
-  active?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={[
-        "pointer-events-auto flex flex-col items-center gap-1 transition",
-        active ? "text-white" : "text-white/75 hover:text-white",
-      ].join(" ")}
-    >
-      <Icon className="h-5 w-5" />
-      <span className="text-[10px] tracking-[0.18em]">{label}</span>
-    </button>
-  );
-}
 
 const NAV: { label: string; icon: (p: { className?: string }) => ReactNode; panel: Panel }[] = [
   { label: "Explorar", icon: ExploreIcon, panel: "none" },
@@ -143,9 +108,16 @@ export default function Hud() {
   const openPanel = useExperience((s) => s.openPanel);
   const closePanel = useExperience((s) => s.closePanel);
   const setAptReady = useExperience((s) => s.setAptReady);
+  const bumpNav = useExperience((s) => s.bumpNav);
+  const dockMinimized = useExperience((s) => s.dockMinimized);
   const [dockHidden, setDockHidden] = useState(false);
+  // Overlays minimize the dock; the chevron can still override it afterward.
+  useEffect(() => {
+    setDockHidden(dockMinimized);
+  }, [dockMinimized]);
   const activePanel: Panel = panel === "gallery" ? "none" : panel;
   const onNav = (p: Panel) => {
+    bumpNav(); // reset the target overlay to its base view (even if it's already active)
     if (p === "none") return closePanel();
     if (p === "apartments") setAptReady(false); // gate UI until the hero settles at frame 0
     openPanel(p);
@@ -170,15 +142,6 @@ export default function Hud() {
         </div>
       )}
 
-      {/* ── Top-right: Galeria ── */}
-      <div className="absolute right-6 top-3">
-        <CornerButton
-          icon={MediaIcon}
-          label="Galeria"
-          active={panel === "gallery"}
-          onClick={() => openPanel("gallery")}
-        />
-      </div>
 
       {/* ── Bottom-center: primary nav + hide toggle (slide together) ── */}
       <div
