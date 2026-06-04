@@ -20,17 +20,20 @@ import {
   type UnitStatus,
 } from "@/lib/apartments";
 import { plantaFor } from "@/lib/plantas";
+import Panorama360 from "@/components/Panorama360";
 
 // Hero image natural size + tower facade as a perspective quad per slab.
-const IMG_W = 1713;
-const IMG_H = 960;
+const IMG_W = 1600;
+const IMG_H = 900;
 
 type Pt = [number, number];
 type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
 
 const FACES: { quad: Quad; lines: string[] }[] = [
-  { quad: { TL: [38.0, 16.0], TR: [49.4, 16.0], BR: [49.4, 88.0], BL: [38.0, 88.0] }, lines: ["A"] },
-  { quad: { TL: [50.2, 16.0], TR: [62.0, 16.0], BR: [62.0, 88.0], BL: [50.2, 88.0] }, lines: ["B"] },
+  // left (front) facade
+  { quad: { TL: [40.5, 21.5], TR: [50.0, 21.5], BR: [50.0, 78.0], BL: [41.7, 78.5] }, lines: ["A"] },
+  // right (receding) facade
+  { quad: { TL: [50.0, 21.5], TR: [59.5, 21.7], BR: [58.3, 75.5], BL: [50.0, 77.0] }, lines: ["B"] },
 ];
 
 const LINE_FACE: Record<string, { face: number; col: number; cols: number }> = (() => {
@@ -201,48 +204,12 @@ function Detail({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ActionBtn({
-  onClick,
-  ariaLabel,
-  accent = false,
-  children,
-}: {
-  onClick: () => void;
-  ariaLabel: string;
-  accent?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={[
-        "flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg transition hover:brightness-110",
-        accent ? "bg-accent text-white" : "bg-white text-[#0a1726]",
-      ].join(" ")}
-    >
-      {children}
-    </button>
-  );
-}
-
-const BackIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 14l-4-4 4-4" />
-    <path d="M5 10h9a5 5 0 0 1 0 10h-1" />
-  </svg>
-);
-const ExpandIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M8 3H3v5M21 8V3h-5M16 21h5v-5M3 16v5h5" />
-  </svg>
-);
-const BookmarkIcon = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
-    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
-  </svg>
-);
+// Static feature highlights shown on the expanded floorplan view.
+const FEATURES = [
+  { title: "Isolamento de Alto Desempenho", desc: "Isolamento térmico e acústico de alto desempenho para mais conforto e silêncio.", on: true },
+  { title: "Janelas com Vidro Duplo", desc: "Vidros duplos que ampliam a eficiência energética e reduzem o ruído externo.", on: false },
+  { title: "Controle Climático Inteligente", desc: "Climatização inteligente que mantém a temperatura ideal com mais eficiência.", on: false },
+];
 
 export default function ApartmentsOverlay() {
   const panel = useExperience((s) => s.panel);
@@ -255,9 +222,12 @@ export default function ApartmentsOverlay() {
   const [hover, setHover] = useState<Unit | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [lights, setLights] = useState(false);
+  const [pano, setPano] = useState<string | null>(null); // 360 viewer src (null = closed)
 
   useEffect(() => {
     setExpanded(false);
+    setPano(null);
   }, [selected]);
 
   const facade = useFaceMaps();
@@ -291,6 +261,12 @@ export default function ApartmentsOverlay() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-40">
+      {/* click-outside catcher — closes the unit detail. Sits below the hotspots
+          (so other units stay clickable) and below the panel/filters. */}
+      {selected && (
+        <div className="pointer-events-auto absolute inset-0" onClick={() => setSelected(null)} />
+      )}
+
       {/* on-image hotspots (perspective grid) */}
       {facade && (
         <svg className="pointer-events-none absolute inset-0" width={facade.w} height={facade.h} viewBox={`0 0 ${facade.w} ${facade.h}`}>
@@ -384,7 +360,7 @@ export default function ApartmentsOverlay() {
       </div>
 
       {/* bottom-left: Andar (card) + Dormitórios (card) — side by side */}
-      <div className="absolute bottom-6 left-6 flex w-[500px] items-stretch gap-3">
+      <div className="absolute bottom-8 left-6 flex w-[500px] items-stretch gap-3">
         <Card className="flex-1">
           <RangeSlider
             label="Andar"
@@ -425,7 +401,7 @@ export default function ApartmentsOverlay() {
       </div>
 
       {/* bottom-right: Valor (card) + Metragem (card) — side by side */}
-      <div className="absolute bottom-6 right-6 flex w-[680px] items-stretch gap-3">
+      <div className="absolute bottom-8 right-6 flex w-[680px] items-stretch gap-3">
         <Card className="flex-1">
           <RangeSlider
             label="Valor máx."
@@ -483,29 +459,158 @@ export default function ApartmentsOverlay() {
             className="pointer-events-auto absolute top-1/2 z-10 flex -translate-y-1/2 flex-col gap-3"
             style={{ left: "calc(min(440px, 72%) - 24px)" }}
           >
-            <ActionBtn onClick={() => setSelected(null)} ariaLabel="Voltar">
-              <BackIcon />
-            </ActionBtn>
-            <ActionBtn onClick={() => setExpanded(true)} ariaLabel="Expandir planta">
-              <ExpandIcon />
-            </ActionBtn>
-            <ActionBtn onClick={() => setSaved((s) => !s)} ariaLabel="Salvar" accent={saved}>
-              <BookmarkIcon />
-            </ActionBtn>
+            <button type="button" onClick={() => setSaved((s) => !s)} aria-label="Salvar" className="transition hover:brightness-110">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/plantas/icons/${saved ? "salvar-clicado" : "salvar"}.svg`} alt="Salvar" className="h-12 w-12" />
+            </button>
+            <button type="button" onClick={() => setExpanded(true)} aria-label="Expandir planta" className="transition hover:brightness-110">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/expandir.svg" alt="Expandir" className="h-12 w-12" />
+            </button>
+            <button type="button" onClick={() => setLights((l) => !l)} aria-label="Iluminação" aria-pressed={lights} className="transition hover:brightness-110">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/iluminacao.svg" alt="Iluminação" className="h-12 w-12" />
+            </button>
+            <button type="button" onClick={() => setSelected(null)} aria-label="Voltar" className="transition hover:brightness-110">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/voltar.svg" alt="Voltar" className="h-12 w-12" />
+            </button>
           </div>
         </>
       )}
 
-      {/* expanded floorplan lightbox */}
+      {/* expanded floorplan — full detail view */}
       {selected && expanded && (
-        <div
-          className="zy-fadein pointer-events-auto absolute inset-0 z-20 flex items-center justify-center bg-black/80 p-10"
-          onClick={() => setExpanded(false)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={plantaFor(selected.id)} alt="Planta ampliada" className="max-h-full max-w-full rounded-xl bg-white object-contain" />
+        <div className="pointer-events-auto absolute inset-0 z-[60] overflow-hidden">
+          {/* blurred dark backdrop (no transformed ancestor → blur stays reliable) */}
+          <div className="absolute inset-0 bg-[#0a121c]/85 backdrop-blur-2xl" />
+
+          {/* center floorplan (rotated -90°, no background) — above the side cards so they tuck behind it */}
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-[16vw]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/plantas/humanizada-04.webp"
+              alt={`Planta ampliada — unidade ${selected.label}`}
+              style={{ transform: "rotate(0deg)" }}
+              className="max-h-[90vh] max-w-[64vw] object-contain"
+            />
+          </div>
+
+          {/* view markers over the floorplan — open the 360 view */}
+          {[
+            { x: 60, y: 55, img: "/plantas/360/c1.webp" },
+            { x: 38, y: 70, img: "/plantas/360/2.webp" },
+            { x: 53, y: 63, img: "/plantas/360/3.webp" },
+            { x: 38, y: 56, img: "/plantas/360/4.webp" },
+            { x: 38, y: 40, img: "/plantas/360/5.webp" },
+            { x: 55, y: 73, img: "/plantas/360/6.webp" },
+            { x: 63, y: 50, img: "/plantas/360/7.webp" },
+            { x: 53, y: 30, img: "/plantas/360/8.webp" },
+            { x: 64, y: 30, img: "/plantas/360/9.webp" },
+          ].map((m) => (
+            <button
+              key={`${m.x}-${m.y}`}
+              type="button"
+              onClick={() => setPano(m.img)}
+              aria-label="Ver em 360°"
+              style={{ left: `${m.x}%`, top: `${m.y}%` }}
+              className="pointer-events-auto absolute z-30 -translate-x-1/2 -translate-y-1/2 transition hover:scale-110"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/ver.svg" alt="" className="h-9 w-9" />
+            </button>
+          ))}
+
+          {/* left: unit info */}
+          <div className="absolute left-[15vw] top-1/2 z-10 w-[290px] -translate-y-1/2">
+            <h2 className="mb-6 text-3xl font-semibold text-white">{selected.bedrooms} Dorm.</h2>
+            <div className="space-y-3.5">
+              <Detail label="Nº" value={selected.label} />
+              <Detail label="Área" value={`${selected.area}m²`} />
+              <Detail label="Dormitórios" value={pad2(selected.bedrooms)} />
+              <Detail label="Banheiros" value={pad2(selected.suites)} />
+              <div className="pt-1">
+                <p className="text-[15px] text-white/55">Valor R$:</p>
+                <p className="text-3xl font-bold leading-tight text-white">{numBR(selected.price)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* right: feature cards */}
+          <div className="absolute right-[9vw] top-1/2 z-30 flex w-[360px] -translate-y-1/2 flex-col gap-2">
+            {FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="flex items-start gap-3 rounded-2xl border border-white/50 bg-white/[0.08] p-4 backdrop-blur-md"
+              >
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-semibold leading-tight text-white">{f.title}</h4>
+                  <p className="mt-3 text-[14px] leading-snug text-white/55">{f.desc}</p>
+                </div>
+                <span
+                  className={[
+                    "mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border",
+                    f.on ? "border-transparent bg-accent text-white" : "border-white/30 text-white/60",
+                  ].join(" ")}
+                >
+                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    {f.on ? <path d="M5 12l4 4 10-10" /> : <path d="M12 5v14M5 12h14" />}
+                  </svg>
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* bottom dock */}
+          <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1 rounded-3xl border border-white/12 bg-white/[0.08] px-3 py-2.5 backdrop-blur-xl">
+            <DockBtn label="Salvar" active={saved} onClick={() => setSaved((s) => !s)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/plantas/icons/${saved ? "salvar-clicado" : "salvar"}.svg`} alt="" className="h-11 w-11" />
+            </DockBtn>
+            <DockBtn label="Voltar" onClick={() => setExpanded(false)}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/voltar-clicado.svg" alt="" className="h-11 w-11" />
+            </DockBtn>
+            <DockBtn label="Compartilhar" onClick={() => { }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/plantas/icons/compartilhar.svg" alt="" className="h-11 w-11" />
+            </DockBtn>
+          </div>
+
+          {/* 360° viewer (spherical, three.js) */}
+          {pano && (
+            <div className="absolute inset-0 z-[70]">
+              <Panorama360 src={pano} onClose={() => setPano(null)} />
+            </div>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+function DockBtn({
+  label,
+  active = false,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "flex w-[88px] flex-col items-center gap-1 rounded-2xl px-2 py-2 transition",
+        active ? "text-accent" : "text-white/80 hover:text-white",
+      ].join(" ")}
+    >
+      {children}
+      <span className="text-[11px] tracking-wide">{label}</span>
+    </button>
   );
 }
