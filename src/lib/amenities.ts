@@ -77,7 +77,7 @@ export const AMENITIES: Amenity[] = [
   { key: "game-room", name: "Game Room", icon: "game-room", marker: { x: 25.6, y: 45.8 }, ...GAMEROOM },
   { key: "hall-entrada", name: "Hall de entrada", icon: "hall-entrada", marker: { x: 54.4, y: 56.6 }, pano360: "/areas-comuns/360/hall.webp" },
   { key: "piscina-externa-2", name: "Piscina externa", icon: "piscina-coberta", marker: { x: 71.2, y: 56.7 }, pano360: "/areas-comuns/360/piscina-externa-1.webp" },
-  { key: "academia", name: "Academia", icon: "academia", marker: { x: 20.3, y: 65.9 }, ...ACADEMIA, intro: "/areas-comuns/detail/transicao-academia.mp4" },
+  { key: "academia", name: "Academia", icon: "academia", marker: { x: 20.3, y: 65.9 }, ...ACADEMIA, intro: "/areas-comuns/detail/transicao-academia-v2.mp4" },
   { key: "area-gourmet", name: "Área gourmet", icon: "area-gourmet", marker: { x: 64.8, y: 75.8 }, ...GAMEROOM },
   { key: "espaco-kids", name: "Espaço kids", icon: "espaco-kids", marker: { x: 30.5, y: 73.3 }, pano360: "/areas-comuns/360/espaco-kids.webp" },
 ];
