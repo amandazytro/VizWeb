@@ -21,6 +21,7 @@ import {
 } from "@/lib/apartments";
 import { plantaFor } from "@/lib/plantas";
 import Panorama360 from "@/components/Panorama360";
+import ShareScreen from "@/components/apartments/share-screen";
 
 // Hero image natural size + tower facade as a perspective quad per slab.
 const IMG_W = 1600;
@@ -224,10 +225,12 @@ export default function ApartmentsOverlay() {
   const [saved, setSaved] = useState(false);
   const [lights, setLights] = useState(false);
   const [pano, setPano] = useState<string | null>(null); // 360 viewer src (null = closed)
+  const [share, setShare] = useState(false); // share/summary screen
 
   useEffect(() => {
     setExpanded(false);
     setPano(null);
+    setShare(false);
   }, [selected]);
 
   const facade = useFaceMaps();
@@ -571,7 +574,7 @@ export default function ApartmentsOverlay() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/plantas/icons/voltar-clicado.svg" alt="" className="h-11 w-11" />
             </DockBtn>
-            <DockBtn label="Compartilhar" onClick={() => { }}>
+            <DockBtn label="Compartilhar" onClick={() => setShare(true)}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/plantas/icons/compartilhar.svg" alt="" className="h-11 w-11" />
             </DockBtn>
@@ -585,6 +588,9 @@ export default function ApartmentsOverlay() {
           )}
         </div>
       )}
+
+      {/* share / summary screen */}
+      {selected && share && <ShareScreen unit={selected} onClose={() => setShare(false)} />}
     </div>
   );
 }
