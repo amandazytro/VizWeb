@@ -3,17 +3,46 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useExperience } from "@/lib/store";
+import { useLang, useT, pick } from "@/lib/i18n";
 import { AMENITIES, type Amenity } from "@/lib/amenities";
 import MarkerPill from "@/components/marker-pill";
 import Panorama360 from "@/components/Panorama360";
 
-function GalleryIcon({ className = "" }: { className?: string }) {
+// Detail-view dock button — glass squircle + Plus Jakarta label, purple on hover
+// or while toggled active. Same language as the apartamentos expanded dock.
+function AmenityDockBtn({
+  label,
+  active = false,
+  onClick,
+  children,
+}: {
+  label: string;
+  active?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="14" rx="2" />
-      <circle cx="8.5" cy="9" r="1.5" />
-      <path d="M21 15l-5-5-7 7" />
-    </svg>
+    <button type="button" onClick={onClick} className="group relative flex flex-col items-center">
+      <span
+        className={[
+          "flex h-10 w-10 items-center justify-center rounded-[13px] border border-white/10 transition",
+          active
+            ? "bg-accent text-white shadow-[0_0_12px_3px_rgba(134,103,234,0.45)]"
+            : "bg-white/10 text-white/85 shadow-[0_0_10px_2px_rgba(0,0,0,0.25)] group-hover:bg-accent group-hover:text-white",
+        ].join(" ")}
+      >
+        {children}
+      </span>
+      <span
+        style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+        className={[
+          "absolute top-[calc(100%+6px)] whitespace-nowrap text-[9px] font-semibold leading-none text-[#dcd9d9] transition",
+          active ? "opacity-90" : "opacity-50 group-hover:opacity-80",
+        ].join(" ")}
+      >
+        {label}
+      </span>
+    </button>
   );
 }
 
@@ -29,26 +58,34 @@ function VoltarIcon({ className = "" }: { className?: string }) {
   );
 }
 
-function Marker({ amenity, onSelect }: { amenity: Amenity; onSelect: (a: Amenity) => void }) {
+function Marker({ amenity, name, onSelect }: { amenity: Amenity; name: string; onSelect: (a: Amenity) => void }) {
   return (
     <button
       type="button"
       onClick={() => onSelect(amenity)}
-      style={{ left: `${amenity.marker.x}%`, top: `${amenity.marker.y}%`, transform: "translate(-22px,-50%)" }}
+      style={{ left: `${amenity.marker.x}%`, top: `${amenity.marker.y}%`, transform: "translate(-18px,-50%)" }}
       className="pointer-events-auto absolute"
     >
-      <MarkerPill src={`/areas-comuns/icons/${amenity.icon}.svg`} label={amenity.name} />
+      <MarkerPill src={`/areas-comuns/icons/${amenity.icon}.svg`} label={name} />
     </button>
   );
 }
 
 export default function AmenitiesOverlay() {
+  const lang = useLang();
+  const t = useT();
   const open = useExperience((s) => s.panel) === "amenities";
+  const savedList = useExperience((s) => s.saved);
+  const toggleSaved = useExperience((s) => s.toggleSaved);
   const setDockMinimized = useExperience((s) => s.setDockMinimized);
+  const setHudDockHidden = useExperience((s) => s.setHudDockHidden);
+  const setHudBrandHidden = useExperience((s) => s.setHudBrandHidden);
   const [sel, setSel] = useState<Amenity | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [pano360, setPano360] = useState<string | null>(null);
   const [intro, setIntro] = useState<string | null>(null); // transition video playing
+  const [detailDockHidden, setDetailDockHidden] = useState(false); // detail dock retracted
+  const [scrollHint, setScrollHint] = useState(false); // "scroll to explore" hint on gallery open
   const trackRef = useRef<HTMLDivElement>(null);
 
   const closeDetail = useCallback(() => {
@@ -56,8 +93,11 @@ export default function AmenitiesOverlay() {
     setGalleryOpen(false);
     setPano360(null);
     setIntro(null);
+    setDetailDockHidden(false);
     setDockMinimized(false);
-  }, [setDockMinimized]);
+    setHudDockHidden(false);
+    setHudBrandHidden(false);
+  }, [setDockMinimized, setHudDockHidden, setHudBrandHidden]);
 
   const select = useCallback(
     (a: Amenity) => {
@@ -65,6 +105,7 @@ export default function AmenitiesOverlay() {
         // 360 amenities open the panorama viewer directly
         setPano360(a.pano360);
         setDockMinimized(true);
+        setHudDockHidden(true);
         return;
       }
       if (!a.detail) return; // only amenities with a full-screen render open
@@ -72,9 +113,16 @@ export default function AmenitiesOverlay() {
       setGalleryOpen(false);
       setIntro(a.intro ?? null); // play transition first, if any
       setDockMinimized(true);
+      setHudDockHidden(true);
     },
-    [setDockMinimized]
+    [setDockMinimized, setHudDockHidden]
   );
+
+  // The "THE VERTICAL" brand stays visible when the gallery opens and only fades
+  // once the strip is scrolled (handled by the track's onScroll, below).
+  useEffect(() => {
+    setHudBrandHidden(false);
+  }, [galleryOpen, sel, setHudBrandHidden]);
 
   // Reset selection + restore dock whenever the panel closes.
   useEffect(() => {
@@ -99,24 +147,10 @@ export default function AmenitiesOverlay() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sel, galleryOpen, closeDetail]);
 
-  // Custom scrollbar state (thumb position + visible ratio).
-  const railRef = useRef<HTMLDivElement>(null);
-  const dragBar = useRef(false);
-  const [bar, setBar] = useState({ ratio: 0, vis: 0.3 });
-
-  const syncBar = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    setBar({
-      ratio: max > 0 ? el.scrollLeft / max : 0,
-      vis: el.scrollWidth > 0 ? el.clientWidth / el.scrollWidth : 1,
-    });
-  }, []);
-
   // Wheel → horizontal scroll. Native + non-passive so we preventDefault the
   // browser's own vertical-wheel→horizontal fallback (which otherwise stacks
-  // with our manual scroll and makes the strip jitter).
+  // with our manual scroll and makes the strip jitter). First scroll dismisses
+  // the hint.
   useEffect(() => {
     if (!galleryOpen) return;
     const el = trackRef.current;
@@ -124,50 +158,35 @@ export default function AmenitiesOverlay() {
     const handler = (e: WheelEvent) => {
       e.preventDefault();
       el.scrollLeft += e.deltaY + e.deltaX;
-      syncBar();
+      setScrollHint(false);
+      setHudBrandHidden(el.scrollLeft > 20);
     };
     el.addEventListener("wheel", handler, { passive: false });
     return () => el.removeEventListener("wheel", handler);
-  }, [galleryOpen, sel, syncBar]);
+  }, [galleryOpen, sel, setHudBrandHidden]);
 
-  // Drag the scrollbar (hold + drag) to move the strip, same as the wheel.
-  const barFromX = (clientX: number) => {
-    const rail = railRef.current;
-    const el = trackRef.current;
-    if (!rail || !el) return;
-    const r = rail.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
-    el.scrollLeft = ratio * (el.scrollWidth - el.clientWidth);
-    syncBar();
-  };
-  const onBarDown = (e: React.PointerEvent) => {
-    dragBar.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    barFromX(e.clientX);
-  };
-  const onBarMove = (e: React.PointerEvent) => {
-    if (dragBar.current) barFromX(e.clientX);
-  };
-  const onBarUp = (e: React.PointerEvent) => {
-    dragBar.current = false;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
-  };
-
-  // Recompute thumb size once the gallery (and its images) lay out.
+  // Show the "scroll to explore" hint when the gallery opens; auto-dismiss after
+  // a few seconds (it also dismisses on the first scroll, above).
   useEffect(() => {
-    if (!galleryOpen) return;
-    const id = requestAnimationFrame(syncBar);
-    return () => cancelAnimationFrame(id);
-  }, [galleryOpen, sel, syncBar]);
+    if (!galleryOpen) {
+      setScrollHint(false);
+      return;
+    }
+    setScrollHint(true);
+    const id = setTimeout(() => setScrollHint(false), 5000);
+    return () => clearTimeout(id);
+  }, [galleryOpen, sel]);
 
   if (!open) return null;
 
+  const amenitySaved = sel ? savedList.some((x) => x.id === `amenity-${sel.key}`) : false;
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-20 [text-shadow:0_1px_6px_rgba(0,0,0,0.4)]">
+    <div className="pointer-events-none fixed inset-0 z-20">
       {/* aerial render of the amenities */}
       <Image
-        src="/areas-comuns/bg-v2.webp"
-        alt="Áreas comuns do empreendimento"
+        src="/areas-comuns/bg-figma.webp"
+        alt={t("am.bgAlt")}
         fill
         priority
         sizes="100vw"
@@ -175,7 +194,7 @@ export default function AmenitiesOverlay() {
       />
 
       {/* amenity markers (hidden while a detail is open) */}
-      {!sel && !pano360 && AMENITIES.map((a) => <Marker key={a.key} amenity={a} onSelect={select} />)}
+      {!sel && !pano360 && AMENITIES.map((a) => <Marker key={a.key} amenity={a} name={pick(lang, a.name)} onSelect={select} />)}
 
       {/* 360 viewer (opened directly from a marker) */}
       {pano360 && (
@@ -199,165 +218,180 @@ export default function AmenitiesOverlay() {
       {/* full-screen detail render */}
       {sel?.detail && (
         <div key={sel.key} className="amenity-zoom absolute inset-0 z-10">
-          {galleryOpen ? (
-            // gallery backdrop = static blurred still (no live video blur → fast)
-            <Image
-              src={sel.gallery?.images[0] ?? ""}
-              alt=""
-              aria-hidden="true"
-              fill
-              sizes="100vw"
-              className="scale-110 object-cover blur-2xl"
-            />
-          ) : /\.(mp4|webm)$/i.test(sel.detail) ? (
-            <video
-              src={sel.detail}
-              autoPlay
-              loop
-              muted
-              playsInline
-              onLoadedMetadata={(e) => {
-                e.currentTarget.playbackRate = sel.detailRate ?? 1;
-              }}
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <Image src={sel.detail} alt={sel.name} fill priority sizes="100vw" className="object-cover" />
-          )}
+          {/* detail media — only when NOT in the gallery (the gallery has its own
+              backdrop inside the scroll content) */}
+          {!galleryOpen &&
+            (/\.(mp4|webm)$/i.test(sel.detail) ? (
+              <video
+                src={sel.detail}
+                autoPlay
+                loop
+                muted
+                playsInline
+                onLoadedMetadata={(e) => {
+                  e.currentTarget.playbackRate = sel.detailRate ?? 1;
+                }}
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <Image src={sel.detail} alt={pick(lang, sel.name)} fill priority sizes="100vw" className="object-cover" />
+            ))}
 
           {/* ── DETAIL state ── */}
           {!galleryOpen && (
             <>
-              <span className="pointer-events-none absolute bottom-10 left-10 text-3xl font-semibold text-white">
-                {sel.name}
-              </span>
-              {sel.gallery && (
+              {/* detail dock — glass squircles + retract tab (buttons not wired yet) */}
+              <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
+                <div
+                  className={[
+                    "absolute bottom-8 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
+                    detailDockHidden ? "translate-y-[120px]" : "",
+                  ].join(" ")}
+                >
+                  <ul className="inline-flex items-center gap-8 rounded-[26px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-8 pt-4 pb-6 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
+                    <AmenityDockBtn label={t("apt.back")} onClick={closeDetail}>
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 010 10h-4" /></svg>
+                    </AmenityDockBtn>
+                    <AmenityDockBtn label={t("am.space")} active>
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none" /></svg>
+                    </AmenityDockBtn>
+                    <AmenityDockBtn label={t("am.panorama")}>
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 4v5h-5" /></svg>
+                    </AmenityDockBtn>
+                    {sel.gallery && (
+                      <AmenityDockBtn label={t("am.gallery")} onClick={() => setGalleryOpen(true)}>
+                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 15l-5-5-7 7" /></svg>
+                      </AmenityDockBtn>
+                    )}
+                  </ul>
+                </div>
+                {/* retract tab — stays put so it can un-retract */}
                 <button
                   type="button"
-                  onClick={() => setGalleryOpen(true)}
-                  className="pointer-events-auto absolute bottom-8 right-8 flex flex-col items-center gap-1 text-white/85 transition hover:text-white"
+                  onClick={() => setDetailDockHidden((v) => !v)}
+                  aria-label={detailDockHidden ? t("hud.showMenu") : t("hud.hideMenu")}
+                  className="absolute bottom-2 left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
                 >
-                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-white/10 backdrop-blur-md">
-                    <GalleryIcon className="h-5 w-5" />
-                  </span>
-                  <span className="text-[10px] tracking-[0.18em]">Galeria</span>
+                  <svg viewBox="0 0 24 24" className={["h-3.5 w-3.5 transition-transform", detailDockHidden ? "" : "rotate-180"].join(" ")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
                 </button>
-              )}
+              </div>
             </>
           )}
 
           {/* ── GALLERY state (blurred backdrop + horizontal strip) ── */}
           {sel.gallery && galleryOpen && (
             <>
-              <div className="absolute inset-0 bg-black/40" />
-
-              {/* scrollable strip — images + text + icons all move together */}
+              {/* horizontal scroll — a fixed-ratio canvas (Figma frame 1090px tall →
+                  100vh) reproduced 1:1; every element sits at its exact Figma
+                  coordinate converted to vh (1px = 100/1090 vh). */}
               <div
                 ref={trackRef}
-                onScroll={syncBar}
-                className="pointer-events-auto absolute inset-0 flex items-start gap-10 overflow-x-auto overflow-y-hidden pt-[10vh] pl-[6vw] pr-[10vw] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                onScroll={(e) => setHudBrandHidden(e.currentTarget.scrollLeft > 20)}
+                className="pointer-events-auto absolute inset-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
-                {/* left column — back button + vertical title */}
-                <div className="relative h-[117vh] w-[92px] shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setGalleryOpen(false)}
-                    aria-label="Voltar à imagem"
-                    className="pointer-events-auto absolute left-25 top-0 transition hover:brightness-110"
-                  >
-                    <VoltarIcon className="h-11 w-11" />
+                <div className="relative h-full" style={{ width: "324vh" }}>
+                  {/* blurred backdrop — exactly canvas-sized (scrolls 1:1, never extends
+                      the scroll past the content); overflow-hidden + a slight scale push
+                      the blur fringe off the edges so it covers the whole canvas */}
+                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+                    <Image src="/areas-comuns/bg-gallery.webp" alt="" fill sizes="330vw" className="scale-110 object-cover blur-[35px]" />
+                  </div>
+
+                  {/* back button (top-left) */}
+                  <button type="button" onClick={() => setGalleryOpen(false)} aria-label={t("am.backToImage")} className="absolute transition duration-200 hover:scale-110 hover:brightness-110" style={{ left: "16.6vh", top: "16.7vh", width: "5.75vh", height: "5.75vh" }}>
+                    <VoltarIcon className="h-full w-full" />
                   </button>
-                  <span
-                    style={{ fontFamily: "var(--font-recia), Georgia, serif", writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-                    className="pointer-events-none absolute left-25 top-128 -translate-y-1/2 text-5xl font-semibold tracking-wide text-white"
-                  >
-                    {sel.name}
+
+                  {/* vertical title */}
+                  <span style={{ fontFamily: "var(--font-canela-condensed), Georgia, serif", writingMode: "vertical-rl", transform: "rotate(180deg)", left: "14.6vh", bottom: "130px", fontSize: "7.5vh" }} className="pointer-events-none absolute whitespace-nowrap font-normal leading-none text-white">
+                    {pick(lang, sel.name)}
                   </span>
-                </div>
 
-                {/* 1 */}
-                <div className="relative ml-15 h-[72vh] aspect-[1920/1078] shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
-                  <Image src={sel.gallery.images[0]} alt={`${sel.name} 1`} fill priority sizes="55vw" className="object-cover" />
-                </div>
+                  {/* decorative pill */}
+                  <div className="absolute rounded-full bg-white/25" style={{ left: "9.5vh", top: "89.5vh", width: "6.3vh", height: "1.3vh" }} />
 
-                {/* 2 (top) + text below, 3 beside */}
-                <div className="flex shrink-0 items-start gap-8">
-                  <div className="relative h-[72vh] shrink-0">
-                    <div className="relative h-[40vh] aspect-[866/428] overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
-                      <Image src={sel.gallery.images[1]} alt={`${sel.name} 2`} fill sizes="40vw" className="object-cover" />
-                    </div>
-                    <div className="absolute left-0 top-[43vh] w-[300px] max-w-[50vw]">
-                      <span
-                        aria-hidden="true"
-                        style={{ backgroundColor: "#FF7A1A", boxShadow: "0 8px 24px -6px rgba(255,122,26,0.7)" }}
-                        className="mb-4 flex h-12 w-12 items-center justify-center rounded-full text-white"
-                      >
-                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M15 18l-6-6 6-6" />
-                        </svg>
-                      </span>
-                      <h3 className="text-3xl font-semibold leading-tight text-[#FF7A1A]">{sel.gallery.heading}</h3>
-                      <p className="mt-3 text-sm leading-relaxed text-white/75">{sel.gallery.description}</p>
-                    </div>
+                  {/* image 1 — big */}
+                  <div className="absolute overflow-hidden rounded-[18px] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]" style={{ left: "25.87vh", top: "16.24vh", width: "127.89vh", height: "67.71vh" }}>
+                    <Image src={sel.gallery.images[0]} alt={`${pick(lang, sel.name)} 1`} fill priority sizes="120vw" className="object-cover" />
                   </div>
-                  <div className="relative -ml-[25vw] mt-[53vh] h-[20vh] aspect-[602/256] shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
-                    <Image src={sel.gallery.images[2]} alt={`${sel.name} 3`} fill sizes="40vw" className="object-cover" />
+
+                  {/* image 2 — cluster top */}
+                  <div className="absolute overflow-hidden rounded-[18px] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]" style={{ left: "158.99vh", top: "16.51vh", width: "79.45vh", height: "39.27vh" }}>
+                    <Image src={sel.gallery.images[1]} alt={`${pick(lang, sel.name)} 2`} fill sizes="80vw" className="object-cover" />
                   </div>
-                </div>
 
-                {/* 4 (vertical) */}
-                <div className="relative h-[72vh] aspect-[588/735] shrink-0 overflow-hidden rounded-2xl border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]">
-                  <Image src={sel.gallery.images[3]} alt={`${sel.name} 4`} fill sizes="40vw" style={{ transform: "scale(1.1)" }} className="object-cover" />
-                </div>
+                  {/* image 3 — cluster small */}
+                  <div className="absolute overflow-hidden rounded-[18px] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]" style={{ left: "182.48vh", top: "60vh", width: "55.23vh", height: "23.49vh" }}>
+                    <Image src={sel.gallery.images[2]} alt={`${pick(lang, sel.name)} 3`} fill sizes="55vw" className="object-cover" />
+                  </div>
 
-                {/* save + back icons */}
-                <div
-                  style={{ height: "72vh", display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: "0.75rem", marginLeft: "-0.5rem", flexShrink: 0 }}
-                >
+                  {/* bubble + text 1 (below image 2) */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/areas-comuns/icons/salvar.svg" alt="Salvar" className="h-11 w-11" />
+                  <img src="/areas-comuns/icons/galeria-bubble.svg" alt="" aria-hidden="true" className="absolute" style={{ left: "158.53vh", top: "61.47vh", width: "2.9vh", height: "2.9vh" }} />
+                  <div className="absolute" style={{ left: "158.99vh", top: "66.15vh", width: "18.5vh" }}>
+                    <h3 style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif", fontSize: "2vh" }} className="font-bold leading-tight text-[#A386FF]">{pick(lang, sel.gallery.heading)}</h3>
+                    <p style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif", fontSize: "1.05vh" }} className="mt-[0.6vh] text-justify font-medium leading-snug text-white/85">{pick(lang, sel.gallery.description)}</p>
+                  </div>
+
+                  {/* image 4 — tall */}
+                  <div className="absolute overflow-hidden rounded-[18px] border border-white/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]" style={{ left: "242.66vh", top: "16.51vh", width: "53.94vh", height: "67.43vh" }}>
+                    <Image src={sel.gallery.images[3]} alt={`${pick(lang, sel.name)} 4`} fill sizes="54vw" className="object-cover" />
+                  </div>
+
+                  {/* bubble + text 2 (closing) */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/areas-comuns/icons/galeria-bubble.svg" alt="" aria-hidden="true" className="absolute" style={{ left: "302.02vh", top: "19.63vh", width: "2.9vh", height: "2.9vh" }} />
+                  <div className="absolute" style={{ left: "302.48vh", top: "24.31vh", width: "18.5vh" }}>
+                    <h3 style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif", fontSize: "2vh" }} className="font-bold leading-tight text-[#A386FF]">{pick(lang, sel.gallery.heading)}</h3>
+                    <p style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif", fontSize: "1.05vh" }} className="mt-[0.6vh] text-justify font-medium leading-snug text-white/85">{pick(lang, sel.gallery.description)}</p>
+                  </div>
+
+                  {/* save + back buttons (right) */}
                   <button
                     type="button"
-                    onClick={() => setGalleryOpen(false)}
-                    aria-label="Voltar"
-                    className="transition hover:brightness-110"
+                    onClick={() => sel.gallery && toggleSaved({ id: `amenity-${sel.key}`, src: sel.gallery.images[0], label: pick(lang, sel.name) })}
+                    aria-label={t("apt.save")}
+                    aria-pressed={amenitySaved}
+                    className="absolute transition duration-200 hover:scale-110 hover:brightness-110"
+                    style={{ left: "301.74vh", top: "67.61vh", width: "5.75vh", height: "5.75vh" }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/areas-comuns/icons/voltar.svg" alt="Voltar" className="h-11 w-11" />
+                    <img src="/areas-comuns/icons/salvar.svg" alt={t("apt.save")} className="h-full w-full" />
+                    {amenitySaved && (
+                      <span className="absolute -right-[0.4vh] -top-[0.4vh] flex h-[2.2vh] w-[2.2vh] items-center justify-center rounded-full bg-accent text-white shadow">
+                        <svg viewBox="0 0 24 24" className="h-[1.3vh] w-[1.3vh]" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l4 4 10-10" /></svg>
+                      </span>
+                    )}
                   </button>
-                </div>
-
-                {/* end text (X-aligned with the icons) */}
-                <div style={{ marginLeft: "-84px" }} className="flex h-[30vh] w-[300px] shrink-0 flex-col justify-center gap-5">
-                  <span
-                    aria-hidden="true"
-                    style={{ backgroundColor: "#FF7A1A", boxShadow: "0 8px 24px -6px rgba(255,122,26,0.7)" }}
-                    className="flex h-12 w-12 items-center justify-center rounded-full text-white"
-                  >
-                    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                  </span>
-                  <h3 className="text-2xl font-semibold leading-tight text-[#FF7A1A]">{sel.gallery.heading}</h3>
-                  <p className="text-sm leading-relaxed text-white/75">{sel.gallery.description}</p>
+                  <button type="button" onClick={() => setGalleryOpen(false)} aria-label={t("apt.back")} className="absolute transition duration-200 hover:scale-110 hover:brightness-110" style={{ left: "301.74vh", top: "76.06vh", width: "5.75vh", height: "5.75vh" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/areas-comuns/icons/voltar.svg" alt={t("apt.back")} className="h-full w-full" />
+                  </button>
                 </div>
               </div>
 
-              {/* drag scrollbar (fixed, below the first image) */}
+              {/* top + bottom gradient scrims (fixed over the strip, for legibility) */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-[18%] bg-gradient-to-b from-black/55 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-[22%] bg-gradient-to-t from-black/65 to-transparent" />
+
+              {/* scroll hint — animated mouse icon; rises & fades on first scroll
+                  (or after a few seconds). No blur veil. */}
               <div
-                ref={railRef}
-                onPointerDown={onBarDown}
-                onPointerMove={onBarMove}
-                onPointerUp={onBarUp}
-                className="pointer-events-auto absolute bottom-[15vh] left-[16vw] z-10 h-1 w-[170px] cursor-pointer rounded-full bg-white/15"
+                className={[
+                  "pointer-events-none absolute bottom-[9vh] left-1/2 z-20 flex -translate-x-1/2 flex-col items-center gap-2.5 transition-all duration-700 ease-out",
+                  scrollHint ? "translate-y-0 opacity-100" : "-translate-y-8 opacity-0",
+                ].join(" ")}
               >
-                <div
-                  className="absolute top-0 h-full rounded-full bg-white/50"
-                  style={{
-                    width: `${Math.max(bar.vis * 100, 14)}%`,
-                    left: `${bar.ratio * (100 - Math.max(bar.vis * 100, 14))}%`,
-                  }}
-                />
+                <svg viewBox="0 0 24 40" className="h-10 w-6 text-white/85" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="1" y="1" width="22" height="38" rx="11" />
+                  <line className="zy-mouse-dot" x1="12" y1="8" x2="12" y2="13.5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+                </svg>
+                <span
+                  style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+                  className="text-[11px] font-medium tracking-wide text-white/80"
+                >
+                  {t("am.scrollToExplore")}
+                </span>
               </div>
             </>
           )}

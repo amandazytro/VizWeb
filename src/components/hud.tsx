@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
-import { useExperience, type Panel } from "@/lib/store";
+import { useEffect, type ReactNode } from "react";
+import { useExperience, type Lang, type Panel } from "@/lib/store";
+import { useT, type TKey } from "@/lib/i18n";
 
 function ChevronIcon({ className = "" }: { className?: string }) {
   return (
@@ -12,18 +13,12 @@ function ChevronIcon({ className = "" }: { className?: string }) {
 }
 
 /* — orientation compass (replaces the time/mood bar) — */
-const CARD: Record<number, string> = {
-  0: "N",
-  45: "NE",
-  90: "L",
-  135: "SE",
-  180: "S",
-  225: "SO",
-  270: "O",
-  315: "NO",
+const CARD: Record<Lang, Record<number, string>> = {
+  pt: { 0: "N", 45: "NE", 90: "L", 135: "SE", 180: "S", 225: "SO", 270: "O", 315: "NO" },
+  en: { 0: "N", 45: "NE", 90: "E", 135: "SE", 180: "S", 225: "SW", 270: "W", 315: "NW" },
 };
 
-function Compass({ heading }: { heading: number }) {
+function Compass({ heading, lang }: { heading: number; lang: Lang }) {
   const W = 520; // ribbon width (px)
   const SPAN = 90; // degrees visible across the ribbon
   const pxPerDeg = W / SPAN;
@@ -32,7 +27,7 @@ function Compass({ heading }: { heading: number }) {
   for (let d = startDeg; d <= heading + SPAN / 2 + 0.001; d += 15) {
     const x = W / 2 + (d - heading) * pxPerDeg;
     const norm = ((d % 360) + 360) % 360;
-    const label = norm % 45 === 0 ? CARD[norm] : null;
+    const label = norm % 45 === 0 ? CARD[lang][norm] : null;
     marks.push({ deg: d, x, label, center: Math.abs(x - W / 2) < pxPerDeg * 6 });
   }
   return (
@@ -95,12 +90,45 @@ function PinIcon({ className = "" }: { className?: string }) {
   );
 }
 
-const NAV: { label: string; icon: (p: { className?: string }) => ReactNode; panel: Panel }[] = [
-  { label: "Explorar", icon: ExploreIcon, panel: "none" },
-  { label: "Apartamentos", icon: BuildingIcon, panel: "apartments" },
-  { label: "Áreas comuns", icon: StarIcon, panel: "amenities" },
-  { label: "Aproximidades", icon: PinIcon, panel: "surroundings" },
+const NAV: { key: TKey; icon: (p: { className?: string }) => ReactNode; panel: Panel }[] = [
+  { key: "nav.explore", icon: ExploreIcon, panel: "none" },
+  { key: "nav.apartments", icon: BuildingIcon, panel: "apartments" },
+  { key: "nav.amenities", icon: StarIcon, panel: "amenities" },
+  { key: "nav.surroundings", icon: PinIcon, panel: "surroundings" },
 ];
+
+/* — PT / EN language toggle (top-right on the Explore screen) — */
+function LangToggle() {
+  const lang = useExperience((s) => s.lang);
+  const setLang = useExperience((s) => s.setLang);
+  // rehydrate the saved choice after mount (kept out of the store initializer to
+  // avoid an SSR/CSR hydration mismatch)
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem("zy-lang") : null;
+    if (saved === "pt" || saved === "en") setLang(saved);
+  }, [setLang]);
+  return (
+    <div
+      style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+      className="pointer-events-auto absolute right-10 top-10 flex items-center overflow-hidden rounded-full border border-white/15 bg-[rgba(166,166,166,0.20)] text-[11px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-md"
+    >
+      {(["pt", "en"] as const).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLang(l)}
+          aria-pressed={lang === l}
+          className={[
+            "px-3 py-1.5 uppercase tracking-wide transition",
+            lang === l ? "bg-accent text-white" : "text-white/70 hover:text-white",
+          ].join(" ")}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function Hud() {
   const heading = useExperience((s) => s.heading);
@@ -110,11 +138,15 @@ export default function Hud() {
   const setAptReady = useExperience((s) => s.setAptReady);
   const bumpNav = useExperience((s) => s.bumpNav);
   const dockMinimized = useExperience((s) => s.dockMinimized);
-  const [dockHidden, setDockHidden] = useState(false);
-  // Overlays minimize the dock; the chevron can still override it afterward.
-  useEffect(() => {
-    setDockHidden(dockMinimized);
-  }, [dockMinimized]);
+  const uiCollapsed = useExperience((s) => s.uiCollapsed);
+  const toggleUi = useExperience((s) => s.toggleUi);
+  const aptExpanded = useExperience((s) => s.aptExpanded);
+  const hudDockHidden = useExperience((s) => s.hudDockHidden);
+  const hudBrandHidden = useExperience((s) => s.hudBrandHidden);
+  const lang = useExperience((s) => s.lang);
+  const t = useT();
+  // Dock hides when the user retracts the UI or an overlay auto-minimizes it.
+  const dockHidden = uiCollapsed || dockMinimized;
   const activePanel: Panel = panel === "gallery" ? "none" : panel;
   const onNav = (p: Panel) => {
     bumpNav(); // reset the target overlay to its base view (even if it's already active)
@@ -124,82 +156,94 @@ export default function Hud() {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-30 select-none">
-      {/* ── Brand ── */}
-      <div className="absolute left-6 top-5">
+    <div className="pointer-events-none fixed inset-0 z-50 select-none">
+      {/* ── Brand ── (inset from the edge, sitting just below the compass) */}
+      {!hudBrandHidden && (
+      <div className="absolute left-10 top-10">
         <span
-          style={{ fontFamily: "var(--font-recia), Georgia, serif", fontSize: "17px" }}
-          className="font-semibold tracking-[0.18em] text-white drop-shadow"
+          style={{ fontFamily: "var(--font-recia), Georgia, serif", fontSize: "clamp(26px, 2.05vw, 39px)" }}
+          className="font-bold tracking-[0.02em] text-white drop-shadow"
         >
           THE VERTICAL
         </span>
       </div>
+      )}
 
-      {/* ── Top-center: orientation compass (Explorar only) ── */}
-      {panel === "none" && (
+      {/* ── Top-right: PT / EN language toggle (Explore screen) ── */}
+      {panel === "none" && !aptExpanded && <LangToggle />}
+
+      {/* ── Top-center: orientation compass (Explorar + Apartamentos; hidden in expanded plan) ── */}
+      {(panel === "none" || panel === "apartments") && !aptExpanded && (
         <div className="absolute left-1/2 top-6 -translate-x-1/2">
-          <Compass heading={heading} />
+          <Compass heading={heading} lang={lang} />
         </div>
       )}
 
 
-      {/* ── Bottom-center: primary nav + hide toggle (slide together) ── */}
-      <div
-        className={[
-          "absolute bottom-4 left-1/2 flex -translate-x-1/2 flex-col items-center gap-1.5 transition-transform duration-300 ease-out",
-          dockHidden ? "translate-y-[68%]" : "",
-        ].join(" ")}
-      >
+      {/* ── Bottom-center: primary nav (slides) + retract tab (stays put) ──
+          Figma proportions (r22 container, r14 tiles, own shadow, Plus Jakarta
+          labels) at a compact scale; labels are absolute so the tiles stay tight.
+          Hidden in the expanded floorplan view (which has its own dock). */}
+      {!aptExpanded && !hudDockHidden && (
+      <nav className="absolute inset-x-0 bottom-0">
+        <div
+          className={[
+            "absolute bottom-[38px] left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
+            dockHidden ? "translate-y-[150px]" : "",
+          ].join(" ")}
+          style={{ transitionDelay: uiCollapsed ? "150ms" : "0ms" }}
+        >
+          <ul className="pointer-events-auto inline-flex items-center gap-9 rounded-[30px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-10 pt-4 pb-7 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
+            {NAV.map((item) => {
+              const Icon = item.icon;
+              const isActive = activePanel === item.panel;
+              return (
+                <li key={item.key}>
+                  <button
+                    type="button"
+                    onClick={() => onNav(item.panel)}
+                    aria-pressed={isActive}
+                    className="group relative flex items-center justify-center"
+                  >
+                    {/* Each tile carries its own shadow so it lifts off the container. */}
+                    <span
+                      className={[
+                        "flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/10 transition",
+                        isActive
+                          ? "bg-accent text-white shadow-[0_0_14px_3px_rgba(134,103,234,0.45)]"
+                          : "bg-white/10 text-white/85 shadow-[0_0_12px_2px_rgba(0,0,0,0.25)] group-hover:bg-white/15",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-5 w-5" />
+                    </span>
+                    <span
+                      style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+                      className={[
+                        "absolute left-1/2 top-full mt-[5px] -translate-x-1/2 whitespace-nowrap text-[10px] font-semibold leading-none text-[#dcd9d9] transition",
+                        isActive ? "opacity-90" : "opacity-40 group-hover:opacity-70",
+                      ].join(" ")}
+                    >
+                      {t(item.key)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {/* retract tab — bottom-center, straddling the dock's lower edge */}
         <button
           type="button"
-          onClick={() => setDockHidden((v) => !v)}
-          aria-label={dockHidden ? "Mostrar menu" : "Ocultar menu"}
+          onClick={toggleUi}
+          aria-label={dockHidden ? t("hud.showMenu") : t("hud.hideMenu")}
           aria-expanded={!dockHidden}
-          className={[
-            "pointer-events-auto flex h-5 w-9 items-center justify-center rounded-full text-white/60 transition hover:text-white",
-            dockHidden ? "order-first" : "order-last",
-          ].join(" ")}
+          className="pointer-events-auto absolute bottom-[24px] left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] backdrop-blur-md"
         >
-          <ChevronIcon className={["h-3.5 w-3.5 transition-transform", dockHidden ? "rotate-180" : ""].join(" ")} />
+          <ChevronIcon className={["h-3.5 w-3.5 text-white/80 transition-transform", dockHidden ? "rotate-180" : ""].join(" ")} />
         </button>
-        <nav>
-        <ul className="pointer-events-auto flex items-end gap-7 rounded-3xl border border-white/20 bg-white/15 px-7 py-2.5 backdrop-blur-xl backdrop-saturate-150">
-          {NAV.map((item) => {
-            const Icon = item.icon;
-            const isActive = activePanel === item.panel;
-            return (
-              <li key={item.label}>
-                <button
-                  type="button"
-                  onClick={() => onNav(item.panel)}
-                  aria-pressed={isActive}
-                  className="group flex flex-col items-center gap-1.5"
-                >
-                  <span
-                    className={[
-                      "flex h-11 w-11 items-center justify-center rounded-2xl transition",
-                      isActive
-                        ? "bg-accent text-white shadow-[0_8px_24px_-6px_rgba(124,92,255,0.7)]"
-                        : "bg-white/5 text-white/80 group-hover:bg-white/10 group-hover:text-white",
-                    ].join(" ")}
-                  >
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span
-                    className={[
-                      "text-[10px] tracking-[0.14em] transition",
-                      isActive ? "text-white" : "text-white/55 group-hover:text-white/80",
-                    ].join(" ")}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-        </nav>
-      </div>
+      </nav>
+      )}
 
     </div>
   );

@@ -5,10 +5,10 @@
 
 export default function MarkerPill({ src, label }: { src: string; label: string }) {
   return (
-    <span className="flex items-center gap-3 rounded-3xl border border-white/25 bg-white/15 py-1.5 pl-1.5 pr-5 shadow-[0_6px_20px_rgba(0,0,0,0.25)] backdrop-blur-md backdrop-saturate-150 transition hover:bg-white/25">
+    <span className="flex items-center gap-2 rounded-[17px] border border-white/25 bg-white/15 py-1 pl-1 pr-4 shadow-[0_6px_20px_rgba(0,0,0,0.25)] backdrop-blur-md backdrop-saturate-150 transition duration-200 hover:scale-105 hover:border-[#8667ea]/40 hover:bg-white/25 hover:shadow-[0_6px_20px_rgba(0,0,0,0.25),0_0_16px_2px_rgba(134,103,234,0.45)]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" className="h-11 w-11" />
-      <span className="whitespace-nowrap text-base font-medium text-white">{label}</span>
+      <img src={src} alt="" className="h-9 w-9" />
+      <span className="whitespace-nowrap text-[13px] font-medium text-white">{label}</span>
     </span>
   );
 }

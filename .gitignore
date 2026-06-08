@@ -53,3 +53,8 @@ Refs/planta.svg
 
 # dev server log
 .dev.log
+
+# raw source videos (build inputs — derived .webp frames are committed)
+/public/_src/
+/public/**/*.mp4
+/public/**/*.mov

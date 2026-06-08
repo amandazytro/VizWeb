@@ -1,4 +1,5 @@
 import HeroSequence from "@/components/hero-sequence";
+import Scrims from "@/components/scrims";
 import Hud from "@/components/hud";
 import ApartmentsOverlay from "@/components/apartments/apartments-overlay";
 import GalleryOverlay from "@/components/gallery/gallery-overlay";
@@ -11,6 +12,7 @@ export default function Home() {
     <main className="relative h-[100svh] w-full overflow-hidden">
       <PanelUrlSync />
       <HeroSequence />
+      <Scrims />
       <SurroundingsOverlay />
       <AmenitiesOverlay />
       <Hud />
