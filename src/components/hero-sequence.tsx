@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useExperience } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
-// Explore frame sequence (new 360 orbit video, public/_src/video-explorar.mp4 →
-// frames). Drag orbits the building forward/back smoothly.
-const COUNT = 240;
+// Explore frame sequence (360 orbit video 360_v2.mp4 → frames). Click-and-hold
+// to orbit the building forward/back smoothly.
+const COUNT = 299;
 const PAD = 4;
 const BASE = "/frames/explore";
-// Default frame on load — city-side view, both facades visible (where
-// Apartamentos settles).
-const START_FRAME = 120;
+// Default frame on load — second 5 of the clip (30fps → frame 150): city-side
+// view, both facades visible. Re-tune with ?fcal=1 if needed.
+const START_FRAME = 150;
 const url = (n: number) =>
   `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
@@ -20,6 +20,7 @@ const EASE = 0.18; // smoothing toward the orbit target
 // Mouse-driven 360° orbit: cursor offset from center → rotation speed/direction.
 const ORBIT_DEADZONE = 0.12; // central fraction of the width where the orbit rests
 const ORBIT_MAX_SPEED = 1.3; // frames advanced per animation frame at full deflection
+const ORBIT_WHEEL_STEP = 3.5; // frames advanced per wheel notch (scroll up = forward)
 
 export default function HeroSequence() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,6 +33,7 @@ export default function HeroSequence() {
   const offsetRef = useRef(0); // cursor X offset from center, -1..1
   const arrowRef = useRef(0); // last-applied arrow dir (avoids redundant renders)
   const locked = useRef(false);
+  const pressed = useRef(false); // pointer held down → orbit runs (click-and-hold)
 
   const panel = useExperience((s) => s.panel);
   const t = useT();
@@ -198,22 +200,47 @@ export default function HeroSequence() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel]);
 
-  // Mouse-driven 360° orbit (Explorar only): cursor X relative to center sets
-  // direction + speed; a directional arrow hint fades in on that side.
+  // Click-and-hold 360° orbit (Explorar only): the building orbits ONLY while
+  // the pointer is held down. Cursor X relative to center sets direction + speed
+  // (right = backward, left = forward); a directional arrow hint fades in on the
+  // active side. Release to stop.
   useEffect(() => {
     if (!ready || reduce || panel !== "none") return;
     const setOffsetFromX = (clientX: number) => {
       const half = window.innerWidth / 2;
       offsetRef.current = Math.max(-1, Math.min(1, (clientX - half) / half));
     };
+    const onDown = (e: MouseEvent) => {
+      pressed.current = true;
+      setOffsetFromX(e.clientX);
+    };
     const onMove = (e: MouseEvent) => setOffsetFromX(e.clientX);
-    const onTouch = (e: TouchEvent) => {
+    const onUp = () => {
+      pressed.current = false;
+    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches[0]) {
+        pressed.current = true;
+        setOffsetFromX(e.touches[0].clientX);
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
       if (e.touches[0]) setOffsetFromX(e.touches[0].clientX);
+    };
+    const onTouchEnd = () => {
+      pressed.current = false;
+    };
+    // Wheel orbit: scroll up (deltaY<0) = forward (like the left button), scroll
+    // down = backward (like the right button). No hold required.
+    const onWheel = (e: WheelEvent) => {
+      if (locked.current) return;
+      e.preventDefault();
+      advanceOrbit(-(e.deltaY / 100) * ORBIT_WHEEL_STEP);
     };
     const loop = () => {
       const off = offsetRef.current;
       let dir = 0;
-      if (!locked.current && Math.abs(off) > ORBIT_DEADZONE) {
+      if (!locked.current && pressed.current && Math.abs(off) > ORBIT_DEADZONE) {
         const mag = (Math.abs(off) - ORBIT_DEADZONE) / (1 - ORBIT_DEADZONE);
         advanceOrbit(-Math.sign(off) * mag * ORBIT_MAX_SPEED);
         dir = off > 0 ? 1 : -1;
@@ -224,14 +251,25 @@ export default function HeroSequence() {
       }
       driveRaf.current = requestAnimationFrame(loop);
     };
+    window.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchmove", onTouch, { passive: true });
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    window.addEventListener("wheel", onWheel, { passive: false });
     driveRaf.current = requestAnimationFrame(loop);
     return () => {
+      window.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onTouch);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("wheel", onWheel);
       if (driveRaf.current) cancelAnimationFrame(driveRaf.current);
       offsetRef.current = 0;
+      pressed.current = false;
       arrowRef.current = 0;
       setArrow(0);
     };
@@ -289,7 +327,14 @@ export default function HeroSequence() {
         transition: "transform 700ms cubic-bezier(0.22, 1, 0.36, 1)",
       }}
     >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+      <canvas
+        ref={canvasRef}
+        className={[
+          "absolute inset-0 h-full w-full",
+          panel === "none" ? "cursor-grab active:cursor-grabbing" : "",
+        ].join(" ")}
+        aria-hidden="true"
+      />
 
       {/* 360° orbit hints — move the cursor left/right and the building orbits
           automatically; the arrow on that side fades in. */}
