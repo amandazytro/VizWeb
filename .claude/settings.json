@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npm install)",
+      "Bash('/c/Program Files/nodejs/node.exe' -e ' *)",
+      "mcp__figma__get_variable_defs",
+      "Bash(cd /tmp)",
+      "Bash(curl -s -o fig_explore.png \"https://www.figma.com/api/mcp/asset/fc6400d6-663f-4f05-b70b-252b342877f6\")",
+      "Read(//c/Users/Usuário/AppData/Local/Temp/**)",
+      "mcp__figma__get_design_context"
+    ]
+  }
+}
