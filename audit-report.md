@@ -1,126 +1,96 @@
 # Code Audit Report — Zytro / The Vertical
-_Generated 2026-06-03 · Read-only audit · No files were modified_
+_Generated 2026-06-04 · Read-only audit · No files were modified_
 
 ## Stack detected
-- **Framework:** Next.js 15.5.19 (App Router) + React 19.1.0 + TypeScript 5
-- **Styling:** Tailwind CSS v4 (CSS-first `@theme`)
-- **State:** Zustand 5
-- **Animation deps present:** GSAP 3.15, @gsap/react 2.1, Lenis 1.3
-- **Build/asset pipeline (devDeps):** sharp, ffmpeg-static, ffprobe-static
-- **Scanned:** all of `src/` (17 files, ~1882 LOC), `package.json`, `.mcp.json`, `.gitignore`, asset layout under `public/`.
-- **Skipped / N/A:** `node_modules`, `.next`, generated frames. **No backend, no API routes, no auth, no database, no `.env`, no `process.env` in `src`** — so the Security / Secrets / Auth / Authorization modules have essentially nothing to audit. This is a frontend-only demo with mock data.
+- **Next.js 15.5.19** (App Router) + **React 19.1** + **TypeScript 5**
+- **Tailwind v4**, **Zustand 5** (UI state), **three 0.184** (360 viewer), **qrcode.react 4.2** (share QR)
+- Build/asset pipeline (dev): sharp, ffmpeg-static, ffprobe-static
+- **Scanned:** all of `src/` (19 files, ~2916 LOC), `package.json`, public asset dimensions, `npm audit`.
+- **N/A:** no backend, API routes, auth, DB, `.env`, or `process.env` in `src` → Security/Secrets/Auth/Authorization modules have nothing to audit. Frontend-only demo with mock data.
 
 ## Summary
-Healthy little codebase: no secrets, no `any`, no `console.*`, no `@ts-ignore`, no TODO/FIXME, clean TypeScript. **Zero CRITICAL or HIGH findings** — there is no server surface to attack. The real issues are **dead code** (an unused smooth-scroll component, an unused `frames.ts` module, and unused Zustand state) which in turn leaves **GSAP/Lenis/@gsap/react as orphaned runtime dependencies**, plus two quality items: building hotspots aren't keyboard-accessible, and all imagery uses raw `<img>` instead of `next/image`. Counts: **0 CRITICAL · 0 HIGH · 6 MEDIUM · 3 LOW**.
+Clean codebase: **tsc 0 errors, eslint 0 warnings**, no `any`, no `console.*`, no `@ts-ignore`, no secrets. Shared components (Dock, MarkerPill) keep it DRY. **0 CRITICAL.** The one thing that genuinely bites: the **360 panoramas are 8000×4000**, which exceeds the WebGL max-texture-size on most phones — the 360 viewer will likely render blank on mobile, and the product explicitly targets mobile. Plus one dead screen (GalleryOverlay) and some demo placeholders. Counts: **0 CRITICAL · 1 HIGH · 1 MEDIUM · 5 LOW**.
 
 ## Priority table
 | # | Severity | Module | Location | Issue |
 |---|----------|--------|----------|-------|
-| 1 | MEDIUM | Dead code | `src/components/smooth-scroll.tsx` (whole file) | `SmoothScroll` defined but never imported/rendered |
-| 2 | MEDIUM | Dependencies | `package.json:12-14` | `gsap`, `@gsap/react`, `lenis` only referenced by the dead SmoothScroll → orphaned deps |
-| 3 | MEDIUM | Dead code | `src/lib/frames.ts` (whole file) | `HERO`/`frameUrl`/`posterUrl`/`MOODS` never imported anywhere |
-| 4 | MEDIUM | Dead code | `src/lib/store.ts:18,23,45-51` | `dayNight`/`setDayNight`/`moodToTime`/`uiHidden`/`setUiHidden` have no readers |
-| 5 | MEDIUM | Frontend / a11y | `src/components/apartments/apartments-overlay.tsx:310-327` | Unit hotspots (`<polygon onClick>`) not keyboard-focusable/operable |
-| 6 | MEDIUM | Performance | gallery + all overlays (`<img>` usage) | Raw `<img>` instead of `next/image` → no optimization/responsive sizing |
-| 7 | LOW | Duplication | `surroundings-overlay.tsx:26-30` & `amenities-overlay.tsx:14-19` | Glass-pill marker markup duplicated verbatim |
-| 8 | LOW | Performance | `src/components/hero-sequence.tsx:56-79` | 299 frames eagerly decoded into memory on mount |
-| 9 | LOW | React / state | `src/components/hero-sequence.tsx:117` | `setAptReady(true)` fires for any locked panel, not just Apartamentos |
+| 1 | HIGH | Performance / correctness | `src/components/Panorama360.tsx` + `public/**/360/*.webp` | 8000×4000 equirectangular textures exceed mobile GL_MAX_TEXTURE_SIZE (≈4096) → 360 blank on most phones; ~128MB GPU each |
+| 2 | MEDIUM | Dead code | `src/components/gallery/gallery-overlay.tsx`, `src/lib/gallery.ts`, `src/app/page.tsx:18` | `panel="gallery"` is never triggered → GalleryOverlay unreachable |
+| 3 | LOW | Quality | `src/components/apartments/share-screen.tsx` | Placeholder assets (building = explore frame, selected images reused) |
+| 4 | LOW | Quality | `src/lib/amenities.ts` | 7 amenities reuse 3 real galleries as placeholder content |
+| 5 | LOW | Frontend | `src/components/panel-url-sync.tsx` | `"gallery"` kept in restorable PANELS though unreachable |
+| 6 | LOW | Performance | `src/components/hero-sequence.tsx:60` | 299 hero frames eagerly decoded (~66MB) |
+| 7 | LOW | Dependencies | `package-lock` (transitive) | `postcss` moderate advisory inside Next’s bundled copy |
 
 ## Findings (detailed)
 
-### [#1] MEDIUM — `SmoothScroll` component is never used
-- **Location:** `src/components/smooth-scroll.tsx` (entire file)
-- **What:** Exports `SmoothScroll`, but no file imports it (`page.tsx`/`layout.tsx` don't render it). `grep` finds only its own definition.
-- **Why it matters:** Dead code reads as if Lenis smooth-scroll is active. It also keeps GSAP/Lenis/ScrollTrigger "in use" on paper (see #2). The app is a single fixed viewport (`body { overflow:hidden }`), so there is no page scroll for Lenis to smooth — the component is inert by design.
-- **Suggested fix:** Either delete the file, or actually mount it if smooth scrolling is planned. If keeping for a future scroll-driven section, add a comment that it's intentionally unmounted.
-- **Confidence:** confirmed (no importers).
-
-### [#2] MEDIUM — GSAP / @gsap/react / Lenis are orphaned dependencies
-- **Location:** `package.json:12-14` (`@gsap/react`, `gsap`, `lenis`)
-- **What:** The only references to `gsap`/`ScrollTrigger`/`lenis` are inside the unused `smooth-scroll.tsx`. `@gsap/react` (`useGSAP`) isn't referenced anywhere. The live scrub engine in `hero-sequence.tsx` is hand-rolled rAF + canvas and uses none of them.
-- **Why it matters:** Unused runtime deps enlarge the install/supply-chain surface and mislead future devs about how animation works here. (They are tree-shaken from the client bundle as long as nothing imports them, so bundle impact is ~0 today — the cost is maintenance + supply chain, not shipped bytes.)
-- **Suggested fix:** If #1 is deleted and no GSAP/Lenis work is imminent, drop the three deps:
+### [#1] HIGH — 360 panoramas are 8000×4000 (too large for mobile GPUs)
+- **Location:** `src/components/Panorama360.tsx` (TextureLoader → sphere); assets `public/areas-comuns/360/*.webp`, `public/plantas/360/*.webp` (all 8000×4000).
+- **What:** The viewer uploads each equirectangular image to a WebGL texture at native resolution. 8000px exceeds `GL_MAX_TEXTURE_SIZE` on most mobile GPUs (commonly 4096) and some laptops → the texture silently fails to upload and the sphere renders black/blank. Even where it works, 8000×4000 RGBA ≈ ~128MB GPU memory per panorama.
+- **Why it matters:** The 360 tour is a core feature and the spec targets mobile (30fps min). On phones it will frequently show nothing. Desktop mostly survives (max 16384) but pays the memory cost.
+- **Suggested fix:** Re-export the panoramas at **4096×2048** (still 2:1, plenty for a sphere); optionally a 2048×1024 mobile tier. Re-encode example:
   ```bash
-  npm remove gsap @gsap/react lenis
+  ffmpeg -i in.png -vf scale=4096:2048 -c:v libwebp -q:v 82 out.webp
   ```
-  If the roadmap still wants GSAP/Lenis-driven scroll later, keep them but track that decision.
-- **Confidence:** confirmed for current usage; the "remove" decision depends on roadmap intent.
+  Optionally clamp in code: `renderer.capabilities.maxTextureSize` to pick a tier.
+- **Confidence:** confirmed (asset dims verified 8000×4000); the mobile-failure threshold is device-dependent but 4096 is the common mobile cap.
 
-### [#3] MEDIUM — `src/lib/frames.ts` is entirely unused
-- **Location:** `src/lib/frames.ts` (entire file)
-- **What:** `HERO`, `frameUrl`, `posterUrl`, `MOODS`, `Mood` are exported but nothing imports `@/lib/frames`. The hero uses its own constants in `hero-sequence.tsx` (`/frames/explore`, webp, COUNT=299), and `gallery.ts` defines its own local `frame()` for `/frames/hero/*.jpg`.
-- **Why it matters:** Two parallel "frame URL" sources of truth; the dead one (`frames.ts`, jpg/120) can drift from reality and confuse asset swaps later.
-- **Suggested fix:** Delete `frames.ts`, or make `gallery.ts` and the hero import from it so there's one descriptor. Given the hero and gallery use different asset sets (explore vs hero), deletion is the simpler honest move.
-- **Confidence:** confirmed (no importers of `@/lib/frames`).
+### [#2] MEDIUM — GalleryOverlay is unreachable (dead screen)
+- **Location:** rendered at `src/app/page.tsx:18`; opens only when `panel==="gallery"` (`gallery-overlay.tsx:14`), but **nothing calls `openPanel("gallery")`** anywhere in `src`. `src/lib/gallery.ts` feeds only this component.
+- **What:** The categorized gallery panel (and its mock data) can't be opened through the UI — the old HUD "Galeria" trigger was removed; the amenities "Galeria" uses local state, not this panel.
+- **Why it matters:** Dead UI + data carried in the bundle; misleads future devs into thinking the gallery screen is wired.
+- **Suggested fix:** Either delete `gallery-overlay.tsx` + `lib/gallery.ts` (and the `page.tsx` render), or add a real entry point if the screen is still wanted. If kept intentionally for `?view=gallery` deep links, add a comment saying so.
+- **Confidence:** confirmed (no `openPanel("gallery")` in src).
 
-### [#4] MEDIUM — Unused Zustand state (`dayNight`, mood, `uiHidden`)
-- **Location:** `src/lib/store.ts:18,23,33,37-38,45-51`
-- **What:** `dayNight` / `setDayNight` have no readers or external callers; `moodToTime` is never called; `uiHidden` / `setUiHidden` are never read or set outside the store. The HUD replaced the time-of-day/mood bar with the compass, leaving this behind.
-- **Why it matters:** Dead store fields imply features (day/night mood, UI-hide) that aren't wired, inflating the mental model of the state machine.
-- **Suggested fix:** Remove the unused fields and `moodToTime`, or re-wire the mood slider if day/night is still planned (EXP-04 in REQUIREMENTS). Keep `panel`, `heading`, `aptReady` — those are live.
-- **Confidence:** confirmed for current code (no readers). Lower to "intentional scaffold" if day/night mood is imminent.
+### [#3] LOW — Share screen uses placeholder media
+- **Location:** `src/components/apartments/share-screen.tsx` (`SEL` array; building `src="/frames/explore/0156.webp"`).
+- **What:** "Overview" tower and "Imagens selecionadas" reuse explore/amenity assets instead of real unit renders.
+- **Why it matters:** Visual only; fine for demo, swap before client delivery.
+- **Suggested fix:** Replace with real per-unit assets when available.
+- **Confidence:** confirmed (intentional placeholders).
 
-### [#5] MEDIUM — Apartment unit hotspots aren't keyboard-accessible
-- **Location:** `src/components/apartments/apartments-overlay.tsx:310-327`
-- **What:** Units are clickable `<polygon>` elements with `onClick`/`onMouseEnter` and an `aria-label`, but SVG polygons aren't focusable and there's no `role`/`tabIndex`/key handler. Keyboard and screen-reader users can't select a unit.
-- **Why it matters:** Brokers/clients on keyboard or AT can't use the core availability feature; also hurts the Lighthouse a11y exit gate (PERF-02 targets 90+).
-- **Suggested fix:** Make hotspots focusable and operable, e.g. add `tabIndex={0}` + `role="button"` and an `onKeyDown` for Enter/Space:
-  ```tsx
-  <polygon
-    tabIndex={on ? 0 : -1}
-    role="button"
-    onKeyDown={(e) => { if (on && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setSelected(u); } }}
-    /* ...existing props... */
-  />
-  ```
-  (Add a visible focus outline via CSS for the focused polygon.)
+### [#4] LOW — Most amenities reuse 3 galleries as placeholders
+- **Location:** `src/lib/amenities.ts` (`...PISCINA / ...ACADEMIA / ...GAMEROOM` spreads on 7 markers).
+- **What:** Quadra, hall, área gourmet, etc. show another amenity’s images/text (the vertical title is correct).
+- **Why it matters:** Placeholder content; expected per the build order.
+- **Suggested fix:** Add real `detail`/`gallery`/`pano360` per amenity as assets arrive.
 - **Confidence:** confirmed.
 
-### [#6] MEDIUM — Raw `<img>` everywhere instead of `next/image`
-- **Location:** `gallery-overlay.tsx:120,172`; `surroundings-overlay.tsx` (bg + photos); `amenities-overlay.tsx:14` bg; `apartments-overlay.tsx` floorplans — each `// eslint-disable-next-line @next/next/no-img-element`.
-- **What:** All imagery bypasses Next image optimization (AVIF/WebP negotiation, responsive `srcset`, intrinsic sizing).
-- **Why it matters:** Larger transfers and weaker LCP — directly relevant to PERF-01 (LCP < 2.5s) and PERF-02 (Lighthouse 90+). The gallery grid (many lazy thumbnails) and the full-screen overlay backgrounds are the biggest wins.
-- **Suggested fix:** Use `next/image` for the *static, known-size* surfaces (gallery thumbnails, overlay backgrounds with `fill`, floorplans). Keep raw `<img>`/canvas only for the frame-scrub hero where Next Image doesn't fit. Example for a gallery thumb:
-  ```tsx
-  import Image from "next/image";
-  <Image src={s.src} alt={s.title} fill sizes="(max-width:640px) 50vw, 25vw" className="object-cover" />
-  ```
-- **Confidence:** confirmed pattern; the per-surface decision (which to migrate) needs judgment, since the hero intentionally stays raw.
-
-### [#7] LOW — Marker pill markup duplicated across overlays
-- **Location:** `src/components/surroundings/surroundings-overlay.tsx:26-30` and `src/components/amenities/amenities-overlay.tsx:14-19`
-- **What:** The non-active "glass pill + icon + label" marker uses the same long Tailwind class string in both files.
-- **Why it matters:** Style drift risk — a tweak in one screen won't match the other (already diverging: amenities anchors by icon center, surroundings centers the pill).
-- **Suggested fix:** Extract a shared `<MarkerPill icon label />` (or a `markerPill` class constant) used by both overlays.
+### [#5] LOW — `"gallery"` left in restorable URL panels
+- **Location:** `src/components/panel-url-sync.tsx` (`PANELS` includes `"gallery"`).
+- **What:** `?view=gallery` would restore an otherwise-unreachable panel. Harmless today; becomes moot if #2 is removed.
+- **Suggested fix:** Drop `"gallery"` from the list (or remove with #2).
 - **Confidence:** confirmed.
 
-### [#8] LOW — Hero eagerly decodes all 299 frames into memory on mount
-- **Location:** `src/components/hero-sequence.tsx:56-79`
-- **What:** On mount (non-reduced-motion) it creates 299 `Image` objects and decodes them up front with no concurrency cap or idle scheduling.
-- **Why it matters:** This is the documented image-sequence approach (correct for symmetric scrub), but 299 decoded bitmaps is real memory, and the burst competes with first paint on mid/low-end devices (EXP-02 targets 30fps mobile). It's a deliberate tradeoff, not a defect.
-- **Suggested fix:** Keep the approach, but consider a small concurrency window, decoding visible-first frames before the rest, and/or a reduced frame count / lower-res tier on mobile. Gate behind a "loaded enough to start" threshold rather than all-299.
-- **Confidence:** confirmed behavior; "problem" only under low-end memory pressure.
+### [#6] LOW — Hero preloads all 299 frames eagerly
+- **Location:** `src/components/hero-sequence.tsx:60` (bounded-concurrency loader, START_AT gate).
+- **What:** Decodes ~299 webp (~66MB) on mount. Documented image-sequence tradeoff; already chunked + starts early.
+- **Why it matters:** Memory on low-end mobile; not a defect.
+- **Suggested fix:** Optional mobile tier / lower frame count; leave as-is otherwise.
+- **Confidence:** confirmed behavior.
 
-### [#9] LOW — `aptReady` is set for any locked panel, not just Apartamentos
-- **Location:** `src/components/hero-sequence.tsx:117` (inside `tick`)
-- **What:** Since `locked.current = panel !== "none"`, when the scrub settles while *any* panel is open, `setAptReady(true)` fires. `aptReady` is only consumed by the Apartamentos overlay, so it's harmless today.
-- **Why it matters:** Coupling that will bite if `aptReady` is ever read by another surface; the flag's name no longer matches when it's set.
-- **Suggested fix:** Guard the settle callback with `if (locked.current && useExperience.getState().panel === "apartments")`, or rename the flag to reflect "hero settled".
-- **Confidence:** confirmed (no current bug; latent).
+### [#7] LOW — postcss advisory (transitive via Next)
+- **Location:** `node_modules/next/node_modules/postcss` (bundled).
+- **What:** `npm audit` flags a moderate postcss XSS-in-stringify advisory; only `npm audit fix --force` (downgrades Next to 9.x — breaking) clears it.
+- **Why it matters:** Not in this app’s code path (we don’t stringify untrusted CSS); resolves when Next bumps its bundled postcss.
+- **Suggested fix:** Leave it; don’t force-downgrade Next.
+- **Confidence:** confirmed.
 
 ## What was checked but looked OK
-- **Secrets/config:** no hardcoded keys, no `.env`, no `process.env` in `src`; `.mcp.json` contains only a public Figma MCP URL. `.gitignore` covers `.env*`, `.next`, `.dev.log`.
-- **TypeScript:** no `any`, no `as any`, no `@ts-ignore/expect-error`; data modules are well-typed with `as const` + derived unions.
-- **React hooks:** effects in `gallery-overlay`, `hero-sequence`, `surroundings/amenities` have correct cleanup (listeners removed, rAF cancelled, Lenis/ticker torn down). Dependency arrays are reasonable; the one large hero effect documents its `exhaustive-deps` disable.
-- **Error handling:** image `onerror` is handled in the hero preloader; no swallowed promises in critical paths (there are none — fully client/mock).
-- **Gallery assets:** `public/frames/hero/{day,night}` + manifest exist, so gallery `src` paths resolve (not broken).
-- **Bugs/observability:** no `console` noise, no obvious off-by-one in the dual-range clamp or lightbox modulo navigation.
+- **Build/types/lint:** `tsc --noEmit` 0 errors, `eslint src` 0 warnings.
+- **TypeScript:** no `any`, no `as any`, no `@ts-ignore/expect-error`.
+- **Secrets/config:** none; `.mcp.json` only a public URL; `.gitignore` covers `.env*`/`.next`/`.dev.log`.
+- **State:** `store.ts` has no dead fields (earlier `dayNight`/`uiHidden`/`moodToTime` already removed); `navTick`/`dockMinimized`/`aptReady`/`heading` all used.
+- **WebGL hygiene:** `Panorama360` disposes texture/material/geometry/renderer + `forceContextLoss()` and cancels rAF on unmount — no leak.
+- **a11y:** apartment hotspots keyboard-operable; 360/markers have `aria-label`.
+- **DRY:** Dock and MarkerPill are shared between HUD/ShareScreen and the two map overlays.
+- **Raw `<img>`:** only for inline SVG icons (marker-pill, plantas/ver icons) — `next/image` rightly reserved for raster bg/gallery/detail.
 
 ## Suggested next steps
-1. **Decide the GSAP/Lenis question (#1 + #2 + #3 + #4 together).** If day/night mood and scroll-driven sections are *not* imminent: delete `smooth-scroll.tsx` + `frames.ts`, prune the dead store fields, and `npm remove gsap @gsap/react lenis`. If they *are* imminent: leave them but add a one-line "intentionally staged" note so this audit's finding is explained.
-2. **Fix hotspot keyboard access (#5)** — small change, real accessibility + Lighthouse payoff.
-3. **Migrate the static imagery to `next/image` (#6)** — gallery thumbnails and overlay backgrounds first; measure LCP before/after.
-4. **Tidy-ups (#7–#9)** when convenient: extract the shared marker pill, scope `aptReady`, revisit hero preloading for mobile.
+1. **Fix #1 first** — re-export every 360 webp to 4096×2048 (and/or clamp by `maxTextureSize`). It’s the only thing that breaks a real feature on the target (mobile).
+2. **Decide #2** — delete the dead GalleryOverlay + gallery.ts (and #5), or wire a real entry point.
+3. Swap placeholders (#3, #4) as real assets arrive.
+4. Leave #6/#7 unless profiling/security policy demands otherwise.
 
 ---
-**Reminder:** this was a read-only audit — **nothing in the project was changed.** Tell me which findings you want addressed (e.g. "apply #1–#4" or "fix #5") and I'll make those edits.
+**Reminder:** read-only audit — **nothing was changed.** Tell me which findings to address (e.g. "fix #1" to downscale the panoramas, or "apply #2") and I’ll do it.

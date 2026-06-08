@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useExperience, type Panel } from "@/lib/store";
 
-const PANELS: Panel[] = ["none", "apartments", "gallery", "amenities", "surroundings"];
+const PANELS: Panel[] = ["none", "apartments", "amenities", "surroundings"];
 
 /**
  * Keeps the active module in the URL (`?view=<panel>`) so a page refresh

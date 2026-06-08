@@ -11,7 +11,6 @@ import { create } from "zustand";
 export type Panel =
   | "none"
   | "apartments"
-  | "gallery"
   | "amenities"
   | "surroundings";
 
