@@ -9,13 +9,15 @@ export type PoiKey =
   | "universidade"
   | "shopping";
 
+import type { Localized } from "./i18n";
+
 export type Poi = {
   key: PoiKey;
-  name: string;
+  name: Localized;
   icon: "fork" | "dumbbell" | "cart" | "cap" | "bag";
   km: string;
   minutes: number;
-  description: string;
+  description: Localized;
   marker: { x: number; y: number }; // % of viewport — POI pin (constant across screens)
   badge: { x: number; y: number }; // % — time badge over the baked route
 };
@@ -23,53 +25,59 @@ export type Poi = {
 export const POIS: Poi[] = [
   {
     key: "supermercado",
-    name: "Supermercado",
+    name: { pt: "Supermercado", en: "Supermarket" },
     icon: "cart",
     km: "2 km",
     minutes: 9,
-    description: "Compras do dia a dia a poucos minutos do empreendimento.",
-    marker: { x: 19, y: 13 },
-    badge: { x: 57.7, y: 47.8 },
+    description: {
+      pt: "Compras do dia a dia a poucos minutos do empreendimento.",
+      en: "Everyday shopping just minutes from the development.",
+    },
+    marker: { x: 18.9, y: 12.7 },
+    badge: { x: 57.7, y: 35.2 },
   },
   {
     key: "universidade",
-    name: "Universidade",
+    name: { pt: "Universidade", en: "University" },
     icon: "cap",
     km: "3,5 km",
     minutes: 12,
-    description: "Ensino superior pertinho de casa.",
-    marker: { x: 47, y: 7.5 },
-    badge: { x: 57.9, y: 53.7 },
+    description: { pt: "Ensino superior pertinho de casa.", en: "Higher education right next to home." },
+    marker: { x: 44.1, y: 7.3 },
+    badge: { x: 57.7, y: 34.8 },
   },
   {
     key: "restaurante",
-    name: "Restaurante",
+    name: { pt: "Restaurantes", en: "Restaurants" },
     icon: "fork",
     km: "1 km",
     minutes: 4,
-    description: "Local para novas experiências gastronômicas da região.",
-    marker: { x: 28.5, y: 40 },
-    badge: { x: 27.7, y: 61.9 },
+    description: {
+      pt: "Local para novas experiências gastronômicas da região.",
+      en: "A spot for new dining experiences in the area.",
+    },
+    marker: { x: 28.8, y: 40.1 },
+    badge: { x: 35.0, y: 70.3 },
   },
   {
     key: "academia",
-    name: "Academia",
+    name: { pt: "Academia", en: "Gym" },
     icon: "dumbbell",
     km: "3 km",
     minutes: 5,
-    description: "Estrutura completa para treino e bem-estar.",
-    marker: { x: 77, y: 27.5 },
-    badge: { x: 57.9, y: 54.8 },
+    description: { pt: "Estrutura completa para treino e bem-estar.", en: "A complete setup for training and wellness." },
+    marker: { x: 75.9, y: 27.5 },
+    badge: { x: 58.1, y: 46.6 },
   },
   {
     key: "shopping",
-    name: "Shopping",
+    name: { pt: "Shopping", en: "Mall" },
     icon: "bag",
     km: "4 km",
     minutes: 3,
-    description: "Lojas, cinema e praça de alimentação.",
-    marker: { x: 88, y: 65 },
-    badge: { x: 66.3, y: 68.9 },
+    description: { pt: "Lojas, cinema e praça de alimentação.", en: "Shops, cinema and food court." },
+    marker: { x: 87.9, y: 65.4 },
+    badge: { x: 59.0, y: 68.8 },
   },
 ];
 

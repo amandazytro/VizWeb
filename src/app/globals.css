@@ -3,7 +3,7 @@
 :root {
   --background: #05101c;
   --foreground: #eaf1f8;
-  --accent: #7c5cff;
+  --accent: #8667ea;
   --hud: rgba(10, 20, 33, 0.55);
   --hud-border: rgba(255, 255, 255, 0.12);
 }
@@ -51,6 +51,22 @@ body {
   animation: zyFade 0.35s ease both;
 }
 
+/* solar entry: pull back from the apartments 1.4x framing to the wider day/night shot */
+@keyframes zySolarZoomOut {
+  from {
+    opacity: 0.35;
+    transform: scale(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+.zy-solar-zoomout {
+  animation: zySolarZoomOut 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 40%;
+}
+
 /* amenity detail: zoom + fade into the full-screen render */
 @keyframes amenityZoom {
   from {
@@ -95,6 +111,181 @@ body {
   animation-delay: 1.5s;
 }
 
+/* expanded floorplan zoom in/out */
+@keyframes expandZoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none; /* end with NO transform so descendant backdrop-filter works */
+  }
+}
+@keyframes expandZoomOut {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+.expand-in {
+  animation: expandZoomIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.expand-out {
+  animation: expandZoomOut 0.28s cubic-bezier(0.4, 0, 1, 1) both;
+}
+/* opacity-only fade for layers that carry backdrop-filter (no transform → blur
+   stays reliable; a transformed ancestor would silently kill backdrop-filter) */
+@keyframes expandFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.expand-fadein {
+  animation: expandFade 0.34s ease both;
+}
+.expand-fadeout {
+  animation: expandFade 0.26s ease both reverse;
+}
+
+/* gallery scroll hint — mouse-wheel dot bobs; the whole hint rises + fades out */
+@keyframes zyMouseWheel {
+  0% {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  35% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.zy-mouse-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: zyMouseWheel 1.5s ease-in-out infinite;
+}
+
+/* Arredores route reveal — a soft, feathered radial wipe that grows from the
+   development origin and stops exactly at the POI (radius set per-POI in JS).
+   Much smoother than a hard clip circle. */
+@property --route-cur {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@keyframes routeReveal {
+  from {
+    --route-cur: 0px;
+  }
+  to {
+    --route-cur: var(--route-r, 1600px);
+  }
+}
+.route-reveal {
+  -webkit-mask-image: radial-gradient(
+    circle at var(--ox, 50%) var(--oy, 90%),
+    #000 calc(var(--route-cur) - 110px),
+    rgba(0, 0, 0, 0) var(--route-cur)
+  );
+  mask-image: radial-gradient(
+    circle at var(--ox, 50%) var(--oy, 90%),
+    #000 calc(var(--route-cur) - 110px),
+    rgba(0, 0, 0, 0) var(--route-cur)
+  );
+  animation: routeReveal 2s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* Arredores neon route — the line draws itself, then a bright pulse travels along */
+@keyframes routeDrawLine {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes routePulseTravel {
+  from {
+    stroke-dashoffset: 100;
+    opacity: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+.route-line {
+  stroke-dasharray: 100;
+  animation: routeDrawLine 1.6s cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+.route-pulse {
+  /* hidden until the line finishes drawing, then travels in a loop */
+  opacity: 0;
+  animation: routePulseTravel 1.7s 1.75s linear infinite;
+}
+
+/* Arredores POI — the active (red) marker pops in when selected */
+@keyframes poiPop {
+  0% {
+    transform: scale(0.35);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.poi-pop {
+  animation: poiPop 0.36s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Arredores (surroundings) entry — a gentle zoom-out (camera pulls back) + fade */
+@keyframes surroundIntro {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.surround-intro {
+  animation: surroundIntro 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 45%;
+}
+
+/* Floorplan room hotspots ("olhinhos") — a soft pulsing ring draws the eye. */
+@keyframes hotspotPing {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  70%,
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+.hotspot-ping {
+  animation: hotspotPing 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 /* HUD time-of-day slider thumb */
 .zy-range::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -103,7 +294,7 @@ body {
   height: 12px;
   border-radius: 9999px;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(134, 103, 234, 0.5);
   cursor: pointer;
 }
 .zy-range::-moz-range-thumb {
@@ -112,7 +303,7 @@ body {
   border: none;
   border-radius: 9999px;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(134, 103, 234, 0.5);
   cursor: pointer;
 }
 
@@ -139,20 +330,54 @@ body {
   -webkit-appearance: none;
   appearance: none;
   pointer-events: auto;
-  width: 17px;
-  height: 17px;
+  width: 10px;
+  height: 10px;
   border-radius: 9999px;
-  background: #c4b5fd;
-  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.45);
+  background: #8667ea;
+  box-shadow: 0 0 0 2px #d1d1d1, 0 1px 2px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
 .zy-dual::-moz-range-thumb {
   pointer-events: auto;
-  width: 17px;
-  height: 17px;
+  width: 10px;
+  height: 10px;
   border: none;
   border-radius: 9999px;
-  background: #c4b5fd;
-  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.3), 0 1px 3px rgba(0, 0, 0, 0.45);
+  background: #8667ea;
+  box-shadow: 0 0 0 2px #d1d1d1, 0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+
+/* solar slider — same purple thumb as the filter handles, on a thin neutral track */
+.zy-solar {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+.zy-solar::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+}
+.zy-solar::-moz-range-track {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+}
+.zy-solar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background: #8667ea;
+  box-shadow: 0 0 0 2px #d1d1d1, 0 1px 2px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.zy-solar::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 9999px;
+  background: #8667ea;
+  box-shadow: 0 0 0 2px #d1d1d1, 0 1px 2px rgba(0, 0, 0, 0.4);
   cursor: pointer;
 }
