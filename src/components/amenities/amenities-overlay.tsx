@@ -172,14 +172,14 @@ export default function AmenitiesOverlay() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-20 [text-shadow:0_1px_6px_rgba(0,0,0,0.4)]">
-      {/* aerial render of the amenities */}
-      <Image
-        src="/areas-comuns/bg-v2.webp"
-        alt="Áreas comuns do empreendimento"
-        fill
-        priority
-        sizes="100vw"
-        className="zy-fadein object-cover"
+      {/* aerial render of the amenities (looping video) */}
+      <video
+        src="/areas-comuns/bg2.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="zy-fadein absolute inset-0 h-full w-full object-cover"
       />
 
       {/* amenity markers (hidden while a detail is open) */}
