@@ -17,6 +17,7 @@ export type Amenity = {
   detailRate?: number; // playback rate when detail is a video (default 1)
   gallery?: AmenityGallery; // horizontal detail/gallery panel (opened from the detail view)
   pano360?: string; // equirectangular image; clicking opens the 360 viewer directly
+  video?: string; // clicking opens the pan & scan video player
   intro?: string; // transition video played once before the detail
 };
 
@@ -75,9 +76,9 @@ export const AMENITIES: Amenity[] = [
   { key: "piscina-externa-1", name: "Piscina externa", icon: "piscina-coberta", marker: { x: 63.1, y: 42.0 }, pano360: "/areas-comuns/360/piscina-externa.webp" },
   { key: "salao-festas", name: "Salão de festas", icon: "salao-festas", marker: { x: 37.9, y: 45.0 }, pano360: "/areas-comuns/360/salao-festas.webp" },
   { key: "game-room", name: "Game Room", icon: "game-room", marker: { x: 25.6, y: 45.8 }, ...GAMEROOM },
-  { key: "hall-entrada", name: "Hall de entrada", icon: "hall-entrada", marker: { x: 54.4, y: 56.6 }, pano360: "/areas-comuns/360/hall.webp" },
+  { key: "hall-entrada", name: "Hall de entrada", icon: "hall-entrada", marker: { x: 54.4, y: 56.6 }, video: "/areas-comuns/detail/hall.mp4" },
   { key: "piscina-externa-2", name: "Piscina externa", icon: "piscina-coberta", marker: { x: 71.2, y: 56.7 }, pano360: "/areas-comuns/360/piscina-externa-1.webp" },
-  { key: "academia", name: "Academia", icon: "academia", marker: { x: 20.3, y: 65.9 }, ...ACADEMIA, intro: "/areas-comuns/detail/transicao-academia.mp4" },
+  { key: "academia", name: "Academia", icon: "academia", marker: { x: 20.3, y: 65.9 }, ...ACADEMIA, intro: "/areas-comuns/detail/transicao-academia-v2.mp4" },
   { key: "area-gourmet", name: "Área gourmet", icon: "area-gourmet", marker: { x: 64.8, y: 75.8 }, ...GAMEROOM },
   { key: "espaco-kids", name: "Espaço kids", icon: "espaco-kids", marker: { x: 30.5, y: 73.3 }, pano360: "/areas-comuns/360/espaco-kids.webp" },
 ];

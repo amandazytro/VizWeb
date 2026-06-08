@@ -6,6 +6,7 @@ import { useExperience } from "@/lib/store";
 import { AMENITIES, type Amenity } from "@/lib/amenities";
 import MarkerPill from "@/components/marker-pill";
 import Panorama360 from "@/components/Panorama360";
+import PanScanVideo from "@/components/pan-scan-video";
 
 function GalleryIcon({ className = "" }: { className?: string }) {
   return (
@@ -48,6 +49,7 @@ export default function AmenitiesOverlay() {
   const [sel, setSel] = useState<Amenity | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [pano360, setPano360] = useState<string | null>(null);
+  const [video, setVideo] = useState<string | null>(null); // pan & scan video
   const [intro, setIntro] = useState<string | null>(null); // transition video playing
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -55,12 +57,18 @@ export default function AmenitiesOverlay() {
     setSel(null);
     setGalleryOpen(false);
     setPano360(null);
+    setVideo(null);
     setIntro(null);
     setDockMinimized(false);
   }, [setDockMinimized]);
 
   const select = useCallback(
     (a: Amenity) => {
+      if (a.video) {
+        setVideo(a.video);
+        setDockMinimized(true);
+        return;
+      }
       if (a.pano360) {
         // 360 amenities open the panorama viewer directly
         setPano360(a.pano360);
@@ -164,23 +172,30 @@ export default function AmenitiesOverlay() {
 
   return (
     <div className="pointer-events-none fixed inset-0 z-20 [text-shadow:0_1px_6px_rgba(0,0,0,0.4)]">
-      {/* aerial render of the amenities */}
-      <Image
-        src="/areas-comuns/bg-v2.webp"
-        alt="Áreas comuns do empreendimento"
-        fill
-        priority
-        sizes="100vw"
-        className="zy-fadein object-cover"
+      {/* aerial render of the amenities (looping video) */}
+      <video
+        src="/areas-comuns/bg2.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="zy-fadein absolute inset-0 h-full w-full object-cover"
       />
 
       {/* amenity markers (hidden while a detail is open) */}
-      {!sel && !pano360 && AMENITIES.map((a) => <Marker key={a.key} amenity={a} onSelect={select} />)}
+      {!sel && !pano360 && !video && AMENITIES.map((a) => <Marker key={a.key} amenity={a} onSelect={select} />)}
 
       {/* 360 viewer (opened directly from a marker) */}
       {pano360 && (
         <div className="pointer-events-auto absolute inset-0 z-20">
           <Panorama360 src={pano360} onClose={closeDetail} />
+        </div>
+      )}
+
+      {/* pan & scan video (opened directly from a marker) */}
+      {video && (
+        <div className="pointer-events-auto absolute inset-0 z-20">
+          <PanScanVideo src={video} onClose={closeDetail} />
         </div>
       )}
 
