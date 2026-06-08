@@ -53,3 +53,6 @@ Refs/planta.svg
 
 # dev server log
 .dev.log
+
+# large source video (local only)
+Refs/v2.mp4
