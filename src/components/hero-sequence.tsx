@@ -2,55 +2,47 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useExperience } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
-// Explore frame sequence extracted from the client video (Refs/0001-1495.mp4),
-// subsampled to webp. Scroll/drag scrubs forward and backward smoothly.
-const COUNT = 299;
+// Explore frame sequence (new 360 orbit video, public/_src/video-explorar.mp4 →
+// frames). Drag orbits the building forward/back smoothly.
+const COUNT = 240;
 const PAD = 4;
 const BASE = "/frames/explore";
-// Default frame on load (~12s @ 13fps); user scrubs forward/back from here.
-const START_FRAME = 156;
+// Default frame on load — city-side view, both facades visible (where
+// Apartamentos settles).
+const START_FRAME = 120;
 const url = (n: number) =>
   `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
-// Gesture sensitivity: frames advanced per wheel/touch delta.
-const WHEEL_SENS = 0.12;
-const TOUCH_SENS = 0.25;
-const DRAG_SENS = 0.18; // frames per pixel when click-dragging
-const EASE = 0.18; // smoothing toward the scroll target
+const EASE = 0.18; // smoothing toward the orbit target
 
-// Directional drag cursors (white arrow + black outline), hotspot centered.
-const arrowCursor = (left: boolean) => {
-  const flip = left ? "scale(-1,1) translate(-36,0)" : "";
-  const svg =
-    `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'>` +
-    `<g transform='${flip}' fill='none' stroke-linecap='round' stroke-linejoin='round'>` +
-    `<path d='M7 18H29M21 10l8 8-8 8' stroke='black' stroke-width='7'/>` +
-    `<path d='M7 18H29M21 10l8 8-8 8' stroke='white' stroke-width='3.5'/>` +
-    `</g></svg>`;
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") 18 18, auto`;
-};
-const CURSOR_RIGHT = arrowCursor(false);
-const CURSOR_LEFT = arrowCursor(true);
+// Mouse-driven 360° orbit: cursor offset from center → rotation speed/direction.
+const ORBIT_DEADZONE = 0.12; // central fraction of the width where the orbit rests
+const ORBIT_MAX_SPEED = 1.3; // frames advanced per animation frame at full deflection
 
 export default function HeroSequence() {
-  const rootRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const target = useRef(START_FRAME); // desired frame (float)
   const current = useRef(START_FRAME); // eased frame (float)
   const drawn = useRef(-1);
   const raf = useRef(0);
-  const touchY = useRef<number | null>(null);
-  const dragX = useRef<number | null>(null);
+  const driveRaf = useRef(0);
+  const offsetRef = useRef(0); // cursor X offset from center, -1..1
+  const arrowRef = useRef(0); // last-applied arrow dir (avoids redundant renders)
   const locked = useRef(false);
 
   const panel = useExperience((s) => s.panel);
+  const t = useT();
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [reduce, setReduce] = useState(false);
+  const [arrow, setArrow] = useState(0); // -1 left hint, 0 none, +1 right hint
+  const [fcal, setFcal] = useState(false); // facade calibration → show the building unzoomed
 
   useEffect(() => {
+    setFcal(new URLSearchParams(window.location.search).get("fcal") === "1");
     setReduce(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   }, []);
 
@@ -122,7 +114,12 @@ export default function HeroSequence() {
   const resize = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Apartamentos CSS-zooms the canvas 1.4×; render at a higher pixel density
+    // there so the scale-up stays crisp on high-DPI screens (source caps at 1600px).
+    const apt = useExperience.getState().panel === "apartments";
+    const dpr = apt
+      ? Math.min((window.devicePixelRatio || 1) * 1.6, 3)
+      : Math.min(window.devicePixelRatio || 1, 2);
     canvas.width = Math.floor(window.innerWidth * dpr);
     canvas.height = Math.floor(window.innerHeight * dpr);
     canvas.style.width = "100%";
@@ -156,76 +153,90 @@ export default function HeroSequence() {
     if (!raf.current) raf.current = requestAnimationFrame(tick);
   };
 
+  // Advance the orbit by `delta` frames, wrapping seamlessly at either loop seam
+  // (the last frame ≈ the first in a full 360° orbit) so motion stays continuous
+  // forwards and backwards.
+  const advanceOrbit = (delta: number) => {
+    if (locked.current) return; // frozen while a panel/overlay is open
+    let next = target.current + delta;
+    while (next >= COUNT - 1) {
+      next -= COUNT - 1;
+      current.current -= COUNT - 1;
+      drawn.current = -1;
+    }
+    while (next < 0) {
+      next += COUNT - 1;
+      current.current += COUNT - 1;
+      drawn.current = -1;
+    }
+    target.current = next;
+    kick();
+  };
+
   useEffect(() => {
     if (!ready || reduce) return;
     resize();
     draw(START_FRAME);
-
-    const advance = (d: number) => {
-      if (locked.current) return; // frozen while Apartamentos is open
-      target.current = Math.min(COUNT - 1, Math.max(0, target.current + d));
-      kick();
-    };
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      advance(e.deltaY * WHEEL_SENS);
-    };
-    const onTouchStart = (e: TouchEvent) => {
-      touchY.current = e.touches[0]?.clientY ?? null;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      if (touchY.current == null) return;
-      const y = e.touches[0]?.clientY ?? touchY.current;
-      advance((touchY.current - y) * TOUCH_SENS);
-      touchY.current = y;
-    };
-
-    // Click-drag: drag right → forward (like scrolling down), left → back.
-    const onMouseDown = (e: MouseEvent) => {
-      if (locked.current) return;
-      dragX.current = e.clientX;
-    };
-    const onMouseMove = (e: MouseEvent) => {
-      if (dragX.current == null) return;
-      const dx = e.clientX - dragX.current;
-      const node = rootRef.current;
-      if (node) node.style.cursor = dx > 0 ? CURSOR_RIGHT : dx < 0 ? CURSOR_LEFT : node.style.cursor;
-      advance(dx * DRAG_SENS);
-      dragX.current = e.clientX;
-    };
-    const onMouseUp = () => {
-      dragX.current = null;
-      if (rootRef.current) rootRef.current.style.cursor = "";
-    };
-
-    const el = rootRef.current ?? window;
-    el.addEventListener("wheel", onWheel as EventListener, { passive: false });
-    el.addEventListener("touchstart", onTouchStart as EventListener, { passive: true });
-    el.addEventListener("touchmove", onTouchMove as EventListener, { passive: true });
-    el.addEventListener("mousedown", onMouseDown as EventListener);
-    window.addEventListener("mousemove", onMouseMove as EventListener);
-    window.addEventListener("mouseup", onMouseUp as EventListener);
     window.addEventListener("resize", resize);
     return () => {
-      el.removeEventListener("wheel", onWheel as EventListener);
-      el.removeEventListener("touchstart", onTouchStart as EventListener);
-      el.removeEventListener("touchmove", onTouchMove as EventListener);
-      el.removeEventListener("mousedown", onMouseDown as EventListener);
-      window.removeEventListener("mousemove", onMouseMove as EventListener);
-      window.removeEventListener("mouseup", onMouseUp as EventListener);
       window.removeEventListener("resize", resize);
-      document.body.style.cursor = "";
       if (raf.current) cancelAnimationFrame(raf.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, reduce]);
 
-  // Freeze the scrub whenever any panel/overlay is open — click-drag and
-  // scroll only drive the hero on the Explorar screen (panel === "none").
+  // Freeze the orbit whenever any panel/overlay is open — the mouse only drives
+  // the hero on the Explorar screen (panel === "none").
   useEffect(() => {
     locked.current = panel !== "none";
-    if (panel === "none" && rootRef.current) rootRef.current.style.cursor = "";
   }, [panel]);
+
+  // Re-allocate the canvas at the right pixel density when entering/leaving
+  // Apartamentos (it CSS-zooms 1.4×, so it needs more backing pixels there).
+  useEffect(() => {
+    if (ready && !reduce) resize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panel]);
+
+  // Mouse-driven 360° orbit (Explorar only): cursor X relative to center sets
+  // direction + speed; a directional arrow hint fades in on that side.
+  useEffect(() => {
+    if (!ready || reduce || panel !== "none") return;
+    const setOffsetFromX = (clientX: number) => {
+      const half = window.innerWidth / 2;
+      offsetRef.current = Math.max(-1, Math.min(1, (clientX - half) / half));
+    };
+    const onMove = (e: MouseEvent) => setOffsetFromX(e.clientX);
+    const onTouch = (e: TouchEvent) => {
+      if (e.touches[0]) setOffsetFromX(e.touches[0].clientX);
+    };
+    const loop = () => {
+      const off = offsetRef.current;
+      let dir = 0;
+      if (!locked.current && Math.abs(off) > ORBIT_DEADZONE) {
+        const mag = (Math.abs(off) - ORBIT_DEADZONE) / (1 - ORBIT_DEADZONE);
+        advanceOrbit(-Math.sign(off) * mag * ORBIT_MAX_SPEED);
+        dir = off > 0 ? 1 : -1;
+      }
+      if (dir !== arrowRef.current) {
+        arrowRef.current = dir;
+        setArrow(dir);
+      }
+      driveRaf.current = requestAnimationFrame(loop);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    driveRaf.current = requestAnimationFrame(loop);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onTouch);
+      if (driveRaf.current) cancelAnimationFrame(driveRaf.current);
+      offsetRef.current = 0;
+      arrowRef.current = 0;
+      setArrow(0);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, reduce, panel]);
 
   // Apartamentos: animate the hero to the default frame, then unlock the UI.
   useEffect(() => {
@@ -256,12 +267,12 @@ export default function HeroSequence() {
     return (
       <section
         className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
-        aria-label="Empreendimento"
+        aria-label={t("hero.devAlt")}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url(1)}
-          alt="Torre do empreendimento"
+          alt={t("hero.towerAlt")}
           className="absolute inset-0 h-full w-full object-cover"
         />
       </section>
@@ -270,14 +281,44 @@ export default function HeroSequence() {
 
   return (
     <section
-      ref={rootRef}
-      className={[
-        "absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]",
-        panel === "none" ? "cursor-grab active:cursor-grabbing" : "",
-      ].join(" ")}
-      aria-label="Empreendimento — role ou arraste para percorrer o vídeo"
+      className="absolute inset-0 h-[100svh] w-full overflow-hidden bg-[#05101c]"
+      aria-label={t("hero.label360")}
+      style={{
+        transform: panel === "apartments" && !fcal ? "scale(1.4)" : "none",
+        transformOrigin: "50% 40%",
+        transition: "transform 700ms cubic-bezier(0.22, 1, 0.36, 1)",
+      }}
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+
+      {/* 360° orbit hints — move the cursor left/right and the building orbits
+          automatically; the arrow on that side fades in. */}
+      {ready && panel === "none" && (
+        <>
+          <div
+            aria-hidden
+            className={[
+              "pointer-events-none absolute left-[20%] top-1/2 z-10 -translate-y-1/2 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] transition-opacity duration-300",
+              arrow === -1 ? "opacity-90" : "opacity-0",
+            ].join(" ")}
+          >
+            <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 6l-6 6 6 6" />
+            </svg>
+          </div>
+          <div
+            aria-hidden
+            className={[
+              "pointer-events-none absolute right-[20%] top-1/2 z-10 -translate-y-1/2 text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)] transition-opacity duration-300",
+              arrow === 1 ? "opacity-90" : "opacity-0",
+            ].join(" ")}
+          >
+            <svg viewBox="0 0 24 24" className="h-12 w-12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </div>
+        </>
+      )}
 
       {!ready && (
         <div className="absolute inset-0 flex items-center justify-center bg-[#05101c]">

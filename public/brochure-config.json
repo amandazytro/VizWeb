@@ -1,0 +1,30 @@
+{
+  "cols": [
+    1.09,
+    1.24,
+    0.45
+  ],
+  "gap": 20,
+  "padX": 77,
+  "padTop": 114,
+  "padBottom": 130,
+  "ovTitle": 22,
+  "ovText": 13,
+  "ovImg": 46,
+  "ovImgRot": 0,
+  "opTitle": 20,
+  "opPlanScale": 140,
+  "opPlanRot": 180,
+  "opPill": 8,
+  "imgTitle": 20,
+  "qrSize": 87,
+  "qrTitle": 15,
+  "price": 29,
+  "circle": 56,
+  "pos": {
+    "op.pills": {
+      "x": -2,
+      "y": 38
+    }
+  }
+}
