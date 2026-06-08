@@ -1,6 +1,8 @@
 // Mock apartment inventory for the demo. Deterministic so the unit grid is
 // stable across renders. Swap for real data (Supabase) in the production build.
 
+import type { Localized } from "./i18n";
+
 export type UnitStatus = "available" | "reserved" | "sold";
 export type Orientation = "N" | "S" | "L" | "O";
 export type ViewType = "Cidade" | "Parque" | "Mar" | "Montanha";
@@ -77,11 +79,11 @@ export const UNITS: Unit[] = buildUnits();
 // reservado = yellow. `plural` is used in the status filter legend.
 export const STATUS_META: Record<
   UnitStatus,
-  { label: string; plural: string; dot: string }
+  { label: Localized; plural: Localized; dot: string }
 > = {
-  available: { label: "Disponível", plural: "Disponíveis", dot: "#8b5cf6" },
-  reserved: { label: "Reservado", plural: "Reservados", dot: "#f5c518" },
-  sold: { label: "Vendido", plural: "Vendidos", dot: "#e5484d" },
+  available: { label: { pt: "Disponível", en: "Available" }, plural: { pt: "Disponíveis", en: "Available" }, dot: "#8b5cf6" },
+  reserved: { label: { pt: "Reservado", en: "Reserved" }, plural: { pt: "Reservados", en: "Reserved" }, dot: "#f5c518" },
+  sold: { label: { pt: "Vendido", en: "Sold" }, plural: { pt: "Vendidos", en: "Sold" }, dot: "#e5484d" },
 };
 
 export const STATUS_ORDER: UnitStatus[] = ["sold", "available", "reserved"];
@@ -89,7 +91,7 @@ export const STATUS_ORDER: UnitStatus[] = ["sold", "available", "reserved"];
 export type Filters = {
   floorMin: number;
   floorMax: number;
-  bedrooms: number | null;
+  bedrooms: number[]; // selected dorm counts; empty = show all
   priceMin: number;
   priceMax: number;
   areaMin: number;
@@ -107,18 +109,18 @@ export const AREA_FLOOR = Math.min(...UNITS.map((u) => u.area));
 export const DEFAULT_FILTERS: Filters = {
   floorMin: FLOOR_MIN,
   floorMax: FLOOR_MAX,
-  bedrooms: null,
+  bedrooms: [],
   priceMin: PRICE_FLOOR,
   priceMax: PRICE_CAP,
   areaMin: AREA_FLOOR,
   areaMax: AREA_CAP,
-  active: [...STATUS_ORDER], // all statuses lit by default
+  active: [], // none selected → building opens clean; user toggles statuses
 };
 
 export function matches(u: Unit, f: Filters): boolean {
-  if (f.active.length > 0 && !f.active.includes(u.status)) return false;
+  if (!f.active.includes(u.status)) return false; // empty selection → nothing shown
   if (u.floor < f.floorMin || u.floor > f.floorMax) return false;
-  if (f.bedrooms != null && u.bedrooms !== f.bedrooms) return false;
+  if (f.bedrooms.length > 0 && !f.bedrooms.includes(u.bedrooms)) return false;
   if (u.price < f.priceMin || u.price > f.priceMax) return false;
   if (u.area < f.areaMin || u.area > f.areaMax) return false;
   return true;

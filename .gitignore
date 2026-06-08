@@ -57,3 +57,8 @@ Refs/planta.svg
 # large source video (local only)
 Refs/v2.mp4
 Refs/Video-*.mp4
+
+# raw source videos (build inputs — derived .webp frames are committed)
+/public/_src/
+/public/**/*.mp4
+/public/**/*.mov
