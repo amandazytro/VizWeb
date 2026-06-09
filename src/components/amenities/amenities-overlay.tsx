@@ -47,6 +47,56 @@ function AmenityDockBtn({
   );
 }
 
+// Shared amenity detail dock — back / space / panorama / gallery. Same glass
+// squircles for every amenity detail (real galleries and the fixed-image areas).
+// `onGallery` is undefined where there's no gallery (the button is inert).
+function DetailDock({
+  hidden,
+  setHidden,
+  onBack,
+  onGallery,
+}: {
+  hidden: boolean;
+  setHidden: React.Dispatch<React.SetStateAction<boolean>>;
+  onBack: () => void;
+  onGallery?: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
+      <div
+        className={[
+          "absolute bottom-8 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
+          hidden ? "translate-y-[120px]" : "",
+        ].join(" ")}
+      >
+        <ul className="inline-flex items-center gap-8 rounded-[26px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-8 pt-4 pb-6 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
+          <AmenityDockBtn label={t("apt.back")} onClick={onBack}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 010 10h-4" /></svg>
+          </AmenityDockBtn>
+          <AmenityDockBtn label={t("am.space")} active>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none" /></svg>
+          </AmenityDockBtn>
+          <AmenityDockBtn label={t("am.panorama")}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 4v5h-5" /></svg>
+          </AmenityDockBtn>
+          <AmenityDockBtn label={t("am.gallery")} onClick={onGallery}>
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 15l-5-5-7 7" /></svg>
+          </AmenityDockBtn>
+        </ul>
+      </div>
+      <button
+        type="button"
+        onClick={() => setHidden((v) => !v)}
+        aria-label={hidden ? t("hud.showMenu") : t("hud.hideMenu")}
+        className="absolute bottom-2 left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
+      >
+        <svg viewBox="0 0 24 24" className={["h-3.5 w-3.5 transition-transform", hidden ? "" : "rotate-180"].join(" ")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
+      </button>
+    </div>
+  );
+}
+
 // voltar.svg inlined (white rounded square + purple arrow) — reliable in JSX,
 // unlike the raw file via <img> (its foreignObject/blend layers can drop out).
 function VoltarIcon({ className = "" }: { className?: string }) {
@@ -56,6 +106,56 @@ function VoltarIcon({ className = "" }: { className?: string }) {
       <rect x="0.440574" y="0.440574" width="57.6997" height="58.0851" rx="19.9072" stroke="white" strokeOpacity="0.1" strokeWidth="0.881149" />
       <path d="M14.6895 23.3041C14.8393 22.8572 15.0011 22.6897 15.3577 22.4074C17.9422 20.3577 21.0976 18.6666 23.7399 16.6525C24.3744 16.1812 25.4082 16.4509 25.7094 17.1868C25.9184 17.6974 25.83 17.9012 25.6667 18.3895C25.403 19.1787 24.9535 19.9524 24.7085 20.7549L37.3916 20.7527C40.9455 20.9461 43.6949 23.5575 44.0013 27.0722C43.8432 30.2602 44.2148 33.6504 44.0013 36.8147C43.7503 40.5369 40.7545 42.9719 37.1062 43.1342C32.4914 43.3395 27.7621 43.0335 23.1488 43.0609C22.3188 42.8815 21.5509 42.1383 21.4512 41.2846C21.2347 39.4298 21.7801 38.0959 23.8186 37.9744L37.447 37.9773C38.3085 37.8432 38.785 37.1978 38.8517 36.3648C39.0786 33.5074 38.6779 30.358 38.8487 27.4694C38.8352 26.6884 38.08 25.854 37.2755 25.854H24.9378L26.1431 28.4283C26.5185 29.6147 25.3378 30.5996 24.2328 30.0356L15.0543 24.4742L14.6902 23.7576V23.3041H14.6895Z" fill="#8667EA" />
     </svg>
+  );
+}
+
+// Fixed-image viewer: a full-screen still, with arrows/dots/swipe + keyboard when
+// there is more than one image. Replaces the 360 view for some amenities.
+function StillViewer({ images, onClose }: { images: string[]; onClose: () => void }) {
+  const [i, setI] = useState(0);
+  const multi = images.length > 1;
+  const go = useCallback((d: number) => setI((v) => (v + d + images.length) % images.length), [images.length]);
+  const startX = useRef<number | null>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (multi && e.key === "ArrowRight") go(1);
+      else if (multi && e.key === "ArrowLeft") go(-1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [multi, go, onClose]);
+
+  return (
+    <div
+      className="absolute inset-0 bg-black"
+      onTouchStart={(e) => (startX.current = e.touches[0]?.clientX ?? null)}
+      onTouchEnd={(e) => {
+        if (startX.current == null) return;
+        const dx = (e.changedTouches[0]?.clientX ?? startX.current) - startX.current;
+        if (multi && Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+        startX.current = null;
+      }}
+    >
+      <Image key={i} src={images[i]} alt="" fill priority sizes="100vw" className="zy-fadein object-cover" />
+
+      {multi && (
+        <>
+          <button type="button" onClick={() => go(-1)} aria-label="Anterior" className="absolute left-5 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+          </button>
+          <button type="button" onClick={() => go(1)} aria-label="Próxima" className="absolute right-5 top-1/2 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55">
+            <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+          <div className="absolute bottom-[16vh] left-1/2 z-10 flex -translate-x-1/2 gap-2">
+            {images.map((_, idx) => (
+              <span key={idx} className={["h-2 w-2 rounded-full transition", idx === i ? "bg-white" : "bg-white/40"].join(" ")} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -84,6 +184,8 @@ export default function AmenitiesOverlay() {
   const [sel, setSel] = useState<Amenity | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [pano360, setPano360] = useState<string | null>(null);
+  const [stills, setStills] = useState<string[] | null>(null); // fixed full-screen image(s)
+  const [area, setArea] = useState<Amenity | null>(null); // amenity being viewed (for the description card)
   const [video, setVideo] = useState<string | null>(null); // pan & scan video
   const [intro, setIntro] = useState<string | null>(null); // transition video playing
   const [detailDockHidden, setDetailDockHidden] = useState(false); // detail dock retracted
@@ -94,6 +196,8 @@ export default function AmenitiesOverlay() {
     setSel(null);
     setGalleryOpen(false);
     setPano360(null);
+    setStills(null);
+    setArea(null);
     setVideo(null);
     setIntro(null);
     setDetailDockHidden(false);
@@ -109,6 +213,14 @@ export default function AmenitiesOverlay() {
         setDockMinimized(true);
         return;
       }
+      if (a.stills && a.stills.length) {
+        // fixed-image amenities open the still viewer (swipe if more than one)
+        setStills(a.stills);
+        setArea(a);
+        setDockMinimized(true);
+        setHudDockHidden(true);
+        return;
+      }
       if (a.pano360) {
         // 360 amenities open the panorama viewer directly
         setPano360(a.pano360);
@@ -118,6 +230,7 @@ export default function AmenitiesOverlay() {
       }
       if (!a.detail) return; // only amenities with a full-screen render open
       setSel(a);
+      setArea(a);
       setGalleryOpen(false);
       setIntro(a.intro ?? null); // play transition first, if any
       setDockMinimized(true);
@@ -202,12 +315,35 @@ export default function AmenitiesOverlay() {
       />
 
       {/* amenity markers (hidden while a detail is open) */}
-      {!sel && !pano360 && !video && AMENITIES.map((a) => <Marker key={a.key} amenity={a} name={pick(lang, a.name)} onSelect={select} />)}
+      {!sel && !pano360 && !stills && !video && AMENITIES.map((a) => <Marker key={a.key} amenity={a} name={pick(lang, a.name)} onSelect={select} />)}
 
       {/* 360 viewer (opened directly from a marker) */}
       {pano360 && (
         <div className="pointer-events-auto absolute inset-0 z-20">
           <Panorama360 src={pano360} onClose={closeDetail} />
+        </div>
+      )}
+
+      {/* fixed-image viewer (opened directly from a marker) — same zoom-in as the
+          other amenity details; swipe/arrows when there is more than one image */}
+      {stills && (
+        <div className="amenity-zoom pointer-events-auto absolute inset-0 z-20">
+          <StillViewer images={stills} onClose={closeDetail} />
+          {/* same dock as the other amenity details; gallery button is inert here */}
+          <DetailDock hidden={detailDockHidden} setHidden={setDetailDockHidden} onBack={closeDetail} />
+        </div>
+      )}
+
+      {/* environment description card — top-left, just below the "THE VERTICAL"
+          brand; transparent glass with a blurred backdrop. Hidden in the gallery. */}
+      {area?.description && !galleryOpen && (
+        <div className="zy-fadein pointer-events-none absolute left-10 top-[92px] z-30 w-[290px] rounded-2xl border border-white/15 bg-white/10 px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.30)] backdrop-blur-xl backdrop-saturate-150">
+          <h3 style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }} className="text-[15px] font-bold leading-tight text-white">
+            {pick(lang, area.name)}
+          </h3>
+          <p style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }} className="mt-1.5 text-[12.5px] font-medium leading-snug text-white/85">
+            {pick(lang, area.description)}
+          </p>
         </div>
       )}
 
@@ -252,45 +388,14 @@ export default function AmenitiesOverlay() {
               <Image src={sel.detail} alt={pick(lang, sel.name)} fill priority sizes="100vw" className="object-cover" />
             ))}
 
-          {/* ── DETAIL state ── */}
+          {/* ── DETAIL state — shared dock (gallery opens the strip) ── */}
           {!galleryOpen && (
-            <>
-              {/* detail dock — glass squircles + retract tab (buttons not wired yet) */}
-              <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
-                <div
-                  className={[
-                    "absolute bottom-8 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
-                    detailDockHidden ? "translate-y-[120px]" : "",
-                  ].join(" ")}
-                >
-                  <ul className="inline-flex items-center gap-8 rounded-[26px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-8 pt-4 pb-6 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
-                    <AmenityDockBtn label={t("apt.back")} onClick={closeDetail}>
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 010 10h-4" /></svg>
-                    </AmenityDockBtn>
-                    <AmenityDockBtn label={t("am.space")} active>
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none" /></svg>
-                    </AmenityDockBtn>
-                    <AmenityDockBtn label={t("am.panorama")}>
-                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 4v5h-5" /></svg>
-                    </AmenityDockBtn>
-                    {sel.gallery && (
-                      <AmenityDockBtn label={t("am.gallery")} onClick={() => setGalleryOpen(true)}>
-                        <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="14" rx="2" /><circle cx="8.5" cy="9" r="1.5" /><path d="M21 15l-5-5-7 7" /></svg>
-                      </AmenityDockBtn>
-                    )}
-                  </ul>
-                </div>
-                {/* retract tab — stays put so it can un-retract */}
-                <button
-                  type="button"
-                  onClick={() => setDetailDockHidden((v) => !v)}
-                  aria-label={detailDockHidden ? t("hud.showMenu") : t("hud.hideMenu")}
-                  className="absolute bottom-2 left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
-                >
-                  <svg viewBox="0 0 24 24" className={["h-3.5 w-3.5 transition-transform", detailDockHidden ? "" : "rotate-180"].join(" ")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
-                </button>
-              </div>
-            </>
+            <DetailDock
+              hidden={detailDockHidden}
+              setHidden={setDetailDockHidden}
+              onBack={closeDetail}
+              onGallery={sel.gallery ? () => setGalleryOpen(true) : undefined}
+            />
           )}
 
           {/* ── GALLERY state (blurred backdrop + horizontal strip) ── */}

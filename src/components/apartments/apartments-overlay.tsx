@@ -256,12 +256,14 @@ export default function ApartmentsOverlay() {
   const lang = useLang();
   const t = useT();
   const panel = useExperience((s) => s.panel);
+  const navTick = useExperience((s) => s.navTick);
   const closePanel = useExperience((s) => s.closePanel);
   const aptReady = useExperience((s) => s.aptReady);
   const uiCollapsed = useExperience((s) => s.uiCollapsed);
   const setAptExpanded = useExperience((s) => s.setAptExpanded);
   const savedList = useExperience((s) => s.saved);
   const toggleSaved = useExperience((s) => s.toggleSaved);
+  const removeSaved = useExperience((s) => s.removeSaved);
   const planFeatures = useExperience((s) => s.planFeatures);
   const setPlanFeatures = useExperience((s) => s.setPlanFeatures);
   const clearSaved = useExperience((s) => s.clearSaved);
@@ -318,6 +320,19 @@ export default function ApartmentsOverlay() {
     setSolarMode(false);
     picksRef.current = {}; // re-roll room images for the new unit
   }, [selected]);
+
+  // Re-tapping the Apartamentos dock item (bumps navTick) returns to the base
+  // apartments view — close any open unit detail / expanded / solar / 360.
+  useEffect(() => {
+    setSelected(null);
+    setExpanded(false);
+    setExpandClosing(false);
+    setSolarMode(false);
+    setPano(null);
+    setShare(false);
+    setThanks(false);
+    setRoomView(null);
+  }, [navTick]);
 
   // Enable calibration when the URL has ?cal=1; load any saved overrides.
   useEffect(() => {
@@ -547,13 +562,28 @@ export default function ApartmentsOverlay() {
 
   if (!open || !aptReady) return null;
 
-  // The unit "Salvar" is a cosmetic bookmark — the plan must NEVER appear in the
-  // brochure's selected images (it only supports the Opcionais section).
+  // Saving the plan ("Salvar" in the detail menu) sends EVERY room image of this
+  // unit to the brochure's "Imagens selecionadas" at once — no per-room saving.
+  // Un-saving removes them all again.
   const unitSaved = unitBookmarked;
-  const saveUnit = () => setUnitBookmarked((b) => !b);
-  // Saved-state for the open room photo.
-  const roomSavedId = roomView ? `room-${roomView.src}` : "";
-  const roomSaved = savedList.some((x) => x.id === roomSavedId);
+  const saveUnit = async () => {
+    if (!selected) return;
+    const next = !unitBookmarked;
+    setUnitBookmarked(next);
+    const rooms = Array.from(new Set(spotsFor(selected.bedrooms).map((h) => h.room)));
+    const picks = await Promise.all(
+      rooms.map(async (room) => {
+        const src = await pickFor(room);
+        return src ? { id: `room-${src}`, src, room } : null;
+      })
+    );
+    picks.forEach((p) => {
+      if (!p) return;
+      const present = savedList.some((x) => x.id === p.id);
+      if (next && !present) toggleSaved({ id: p.id, src: p.src, label: pick(lang, ROOM_LABEL[p.room]) });
+      else if (!next && present) removeSaved(p.id);
+    });
+  };
 
   // Slider → scrub the frame sequence (forward/back = time of day / sun position).
   const scrubSolar = (v: number) => {
@@ -1197,21 +1227,8 @@ export default function ApartmentsOverlay() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={roomView.src} alt={pick(lang, ROOM_LABEL[roomView.room])} className="absolute inset-0 h-full w-full object-cover" />
 
-              {/* save this photo into the brochure (check appears once saved) */}
-              <button
-                type="button"
-                onClick={() => roomView && toggleSaved({ id: roomSavedId, src: roomView.src, label: pick(lang, ROOM_LABEL[roomView.room]) })}
-                aria-label={t("apt.save")}
-                aria-pressed={roomSaved}
-                className="absolute right-8 top-8 z-10 flex h-12 w-12 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-md transition hover:bg-black/55"
-              >
-                <BookmarkIcon className={["h-6 w-6", roomSaved ? "text-accent" : ""].join(" ")} filled={roomSaved} />
-                {roomSaved && (
-                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-white shadow">
-                    <CheckIcon className="h-3 w-3" />
-                  </span>
-                )}
-              </button>
+              {/* no per-room save here — saving the plan (left detail menu) sends
+                  all room images to the brochure at once. */}
 
               {/* centered back arrow (same style used elsewhere) */}
               <button
@@ -1384,14 +1401,6 @@ function CheckIcon({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
       <path d="M5 12l4 4 10-10" />
-    </svg>
-  );
-}
-
-function BookmarkIcon({ className = "", filled = false }: { className?: string; filled?: boolean }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1Z" />
     </svg>
   );
 }

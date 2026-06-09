@@ -66,7 +66,10 @@ export default function Dock({ onNavigate }: { onNavigate?: () => void }) {
     onNavigate?.();
     bumpNav();
     if (p === "none") return closePanel();
-    if (p === "apartments") setAptReady(false);
+    // Only reset aptReady when actually entering Apartamentos from another panel.
+    // Re-tapping while already there would leave aptReady=false forever (the hero
+    // only flips it back on a panel change) → frozen bg, dead filters.
+    if (p === "apartments" && panel !== "apartments") setAptReady(false);
     openPanel(p);
   };
 
