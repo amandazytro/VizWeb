@@ -787,9 +787,9 @@ export default function ApartmentsOverlay() {
                   key={u.id}
                   points={insetQuad(corners, isSel ? 3 : 1.2)}
                   fill={isSel ? `url(#selGrad-${u.status})` : STATUS_META[u.status].dot}
-                  fillOpacity={isSel ? 1 : isHov ? 0.65 : on ? 0.45 : fcal ? 0.28 : 0}
-                  stroke={fcal ? "rgba(255,255,255,0.5)" : isSel ? "rgba(255,255,255,0.95)" : isHov ? "rgba(255,255,255,0.85)" : "transparent"}
-                  strokeWidth={fcal ? 0.6 : isSel ? 1.5 : isHov ? 1.5 : 0}
+                  fillOpacity={isSel ? 1 : isHov ? 0.65 : on ? 0.45 : fcal ? 0.5 : 0}
+                  stroke={fcal ? "rgba(255,255,255,0.9)" : isSel ? "rgba(255,255,255,0.95)" : isHov ? "rgba(255,255,255,0.85)" : "transparent"}
+                  strokeWidth={fcal ? 1 : isSel ? 1.5 : isHov ? 1.5 : 0}
                   strokeLinejoin="round"
                   className="cursor-pointer outline-none"
                   style={{
