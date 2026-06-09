@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useExperience } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
-// Explore frame sequence (realistic 360 orbit video → frames, upscaled to
-// 1080p). Click-and-hold to orbit the building forward/back smoothly.
-const COUNT = 240;
+// Explore frame sequence (hero.mp4 360 orbit → frames, native 1080p).
+// Click-and-hold to orbit the building forward/back smoothly.
+const COUNT = 241;
 const PAD = 4;
 const BASE = "/frames/explore";
 // Default frame on load — second 5 of the clip (24fps → frame 120): city-side
