@@ -8,7 +8,7 @@ import PanelUrlSync from "@/components/panel-url-sync";
 
 export default function Home() {
   return (
-    <main className="relative h-[100svh] w-full overflow-hidden">
+    <main className="relative h-[100svh] w-full overflow-hidden bg-[#05101c]">
       <PanelUrlSync />
       <HeroSequence />
       <Scrims />

@@ -36,6 +36,7 @@ export default function HeroSequence() {
   const pressed = useRef(false); // pointer held down → orbit runs (click-and-hold)
 
   const panel = useExperience((s) => s.panel);
+  const navTick = useExperience((s) => s.navTick);
   const t = useT();
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
@@ -300,8 +301,10 @@ export default function HeroSequence() {
       target.current = START_FRAME;
       kick();
     }
+    // navTick: re-tapping the Apartamentos dock re-runs this so aptReady is
+    // re-asserted even when the panel value didn't change (self-heal).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [panel, ready, reduce]);
+  }, [panel, ready, reduce, navTick]);
 
   if (reduce) {
     return (
