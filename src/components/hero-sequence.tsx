@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useExperience } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
-// Explore frame sequence (360 orbit video 360_v2.mp4 → frames). Click-and-hold
-// to orbit the building forward/back smoothly.
-const COUNT = 299;
+// Explore frame sequence (realistic 360 orbit video → frames, upscaled to
+// 1080p). Click-and-hold to orbit the building forward/back smoothly.
+const COUNT = 240;
 const PAD = 4;
 const BASE = "/frames/explore";
-// Default frame on load — second 5 of the clip (30fps → frame 150): city-side
+// Default frame on load — second 5 of the clip (24fps → frame 120): city-side
 // view, both facades visible. Re-tune with ?fcal=1 if needed.
-const START_FRAME = 150;
+const START_FRAME = 120;
 const url = (n: number) =>
   `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
@@ -105,6 +105,8 @@ export default function HeroSequence() {
     const ch = canvas.height;
     const ir = img.width / img.height;
     const cr = cw / ch;
+    // cover: fill the whole screen (no letterbox bars); crops the overflow when
+    // the window isn't exactly 16:9.
     let dw = cw;
     let dh = ch;
     if (cr > ir) dh = cw / ir;
