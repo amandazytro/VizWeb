@@ -4,14 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { useExperience } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
-// Explore frame sequence (hero.mp4 360 orbit → frames, native 1080p).
+// Explore frame sequence (hero1.mp4 360 orbit → frames, native 1080p).
 // Click-and-hold to orbit the building forward/back smoothly.
-const COUNT = 241;
+const COUNT = 193;
 const PAD = 4;
 const BASE = "/frames/explore";
-// Default frame on load — second 5 of the clip (24fps → frame 120): city-side
-// view, both facades visible. Re-tune with ?fcal=1 if needed.
-const START_FRAME = 120;
+// Default frame on load — second 2 of the clip (24fps → frame 48).
+const START_FRAME = 48;
 const url = (n: number) =>
   `${BASE}/${String(Math.min(Math.max(n, 1), COUNT)).padStart(PAD, "0")}.webp`;
 
@@ -106,8 +105,8 @@ export default function HeroSequence() {
     const ch = canvas.height;
     const ir = img.width / img.height;
     const cr = cw / ch;
-    // cover: fill the whole screen (no letterbox bars); crops the overflow when
-    // the window isn't exactly 16:9.
+    // cover: fill the screen (no letterbox bars on the sides); crops the overflow
+    // (a little top/bottom) when the window isn't exactly 16:9.
     let dw = cw;
     let dh = ch;
     if (cr > ir) dh = cw / ir;
@@ -158,22 +157,12 @@ export default function HeroSequence() {
     if (!raf.current) raf.current = requestAnimationFrame(tick);
   };
 
-  // Advance the orbit by `delta` frames, wrapping seamlessly at either loop seam
-  // (the last frame ≈ the first in a full 360° orbit) so motion stays continuous
-  // forwards and backwards.
+  // Advance the orbit by `delta` frames, CLAMPED to the clip ends (no wrap): the
+  // first frame (second 0) and last frame (second 8) are hard stops. Scrolling
+  // past 0 stays at 0; past the end stays at the end.
   const advanceOrbit = (delta: number) => {
     if (locked.current) return; // frozen while a panel/overlay is open
-    let next = target.current + delta;
-    while (next >= COUNT - 1) {
-      next -= COUNT - 1;
-      current.current -= COUNT - 1;
-      drawn.current = -1;
-    }
-    while (next < 0) {
-      next += COUNT - 1;
-      current.current += COUNT - 1;
-      drawn.current = -1;
-    }
+    const next = Math.max(0, Math.min(COUNT - 1, target.current + delta));
     target.current = next;
     kick();
   };
