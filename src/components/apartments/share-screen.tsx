@@ -13,6 +13,16 @@ const serif = { fontFamily: "var(--font-canela), Georgia, serif" } as const;
 const poppins = { fontFamily: "var(--font-poppins), system-ui, sans-serif" } as const;
 const jakarta = { fontFamily: "var(--font-jakarta), system-ui, sans-serif" } as const;
 
+// The brochure is laid out on a FIXED 1920×1080 canvas (the 3 columns never
+// reflow). Only the canvas is scaled to fit the viewport, so the margin around
+// it (the "entorno") adapts — the columns themselves stay static on every screen.
+const DESIGN_W = 1920;
+const DESIGN_H = 1080;
+
+// Mosaic spans for the saved-images grid (2 cols, auto-rows 1fr, dense flow):
+// big landscape → tall → 2 squares → wide. object-cover crops each into shape.
+const MOSAIC_SPAN = ["col-span-2 row-span-2", "row-span-2", "", "", "col-span-2"];
+
 const FEATURE_KEYS: TKey[] = ["feat.insulation.title", "feat.glazing.title", "feat.climate.title"];
 
 function Spec({ label, value, size }: { label: string; value: string; size: number }) {
@@ -24,9 +34,9 @@ function Spec({ label, value, size }: { label: string; value: string; size: numb
   );
 }
 
-function SavedThumb({ item, onRemove, removeLabel, big = false }: { item: { id: string; src: string; label: string }; onRemove: (id: string) => void; removeLabel: string; big?: boolean }) {
+function SavedThumb({ item, onRemove, removeLabel, className = "" }: { item: { id: string; src: string; label: string }; onRemove: (id: string) => void; removeLabel: string; className?: string }) {
   return (
-    <div className={["relative overflow-hidden rounded-[14px]", big ? "min-h-0 flex-1" : ""].join(" ")}>
+    <div className={`relative min-h-0 overflow-hidden rounded-[14px] ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={item.src} alt={item.label} className="absolute inset-0 h-full w-full object-cover" />
       <button type="button" onClick={() => onRemove(item.id)} aria-label={removeLabel} className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-red-500/85">
@@ -65,6 +75,18 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
   const panelDrag = useRef<{ dx: number; dy: number } | null>(null);
   const history = useRef<BrochureConfig[]>([]);
 
+  // Scale the fixed 1920×1080 canvas to fit the viewport (contain → never cut).
+  const [vp, setVp] = useState({ w: DESIGN_W, h: DESIGN_H });
+  useEffect(() => {
+    const onR = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    onR();
+    window.addEventListener("resize", onR);
+    return () => window.removeEventListener("resize", onR);
+  }, []);
+  const scale = Math.min(vp.w / DESIGN_W, vp.h / DESIGN_H);
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+
   useEffect(() => {
     if (typeof window !== "undefined") setBcal(new URLSearchParams(window.location.search).get("bcal") === "1");
     fetch("/api/brochure-config").then((r) => r.json()).then((d) => setCfg(mergeBrochure(d))).catch(() => {});
@@ -99,8 +121,8 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
     const move = (e: PointerEvent) => {
       const d = dragRef.current;
       if (d) {
-        const x = Math.round(d.ox + (e.clientX - d.px));
-        const y = Math.round(d.oy + (e.clientY - d.py));
+        const x = Math.round(d.ox + (e.clientX - d.px) / scaleRef.current);
+        const y = Math.round(d.oy + (e.clientY - d.py) / scaleRef.current);
         setCfg((c) => ({ ...c, pos: { ...c.pos, [d.id]: { x, y } } }));
         setCfgSaved(false);
       }
@@ -159,6 +181,13 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
       <Image src="/frames/explore/0156.webp" alt="" fill priority sizes="100vw" className="scale-105 object-cover blur-md" />
       <div className="absolute inset-0 bg-[#0a121c]/35" />
 
+      {/* fixed-size brochure canvas — columns stay static; only the surrounding
+          margin adapts, by scaling the whole canvas to fit the viewport. */}
+      <div className="absolute inset-0 flex items-center justify-center">
+      {/* `zoom` (not transform: scale) → re-rasterises at the scaled size so it
+          stays crisp on big screens, keeps proportions + line breaks, and doesn't
+          break the cards' backdrop-blur the way a transformed ancestor does. */}
+      <div style={{ width: DESIGN_W, height: DESIGN_H, zoom: scale }} className="relative shrink-0">
       <div
         className="absolute inset-0 grid items-stretch"
         style={{ gridTemplateColumns: `${cfg.cols[0]}fr ${cfg.cols[1]}fr ${cfg.cols[2]}fr`, columnGap: cfg.gap, padding: `${cfg.padTop}px ${cfg.padX}px ${cfg.padBottom}px` }}
@@ -169,7 +198,6 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
           <div {...dh("overview")} style={posStyle("overview")} className={`${card} relative flex h-[53%] gap-5 p-6${ring}`}>
             <div {...dh("ov.img")} style={{ width: `${cfg.ovImg}%`, ...posStyle("ov.img") }} className={`relative shrink-0 overflow-hidden rounded-[14px]${ring}`}>
               <Image src="/frames/explore/0156.webp" alt={t("share.tower")} fill sizes="20vw" style={{ transform: `rotate(${cfg.ovImgRot}deg)` }} className="object-cover" />
-              <span style={jakarta} className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-lg bg-accent px-2.5 py-1 text-[13px] font-bold">{unit.label}</span>
             </div>
             <div className="flex flex-1 flex-col">
               <h3 {...dh("ov.title")} style={{ ...serif, fontSize: cfg.ovTitle, ...posStyle("ov.title") }} className={`font-bold leading-none opacity-95${ring}`}>Overview</h3>
@@ -208,44 +236,39 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
             {saved.length === 0 ? (
               <div style={poppins} className="flex min-h-0 flex-1 items-center justify-center rounded-[14px] border border-dashed border-white/15 p-6 text-center text-xs text-white/45">{t("share.noSaved")}</div>
             ) : (
-              <>
-                <SavedThumb item={saved[0]} onRemove={removeSaved} removeLabel={t("share.removeImage")} big />
-                {saved.length > 1 && (
-                  <div className="grid h-[34%] grid-cols-2 gap-3">
-                    {saved.slice(1, 5).map((it) => (
-                      <SavedThumb key={it.id} item={it} onRemove={removeSaved} removeLabel={t("share.removeImage")} />
-                    ))}
-                  </div>
-                )}
-              </>
+              <div className="grid min-h-0 flex-1 grid-cols-2 gap-3" style={{ gridAutoRows: "1fr", gridAutoFlow: "dense" }}>
+                {saved.slice(0, 5).map((it, i) => (
+                  <SavedThumb key={it.id} item={it} onRemove={removeSaved} removeLabel={t("share.removeImage")} className={MOSAIC_SPAN[i] ?? ""} />
+                ))}
+              </div>
             )}
           </div>
         </div>
 
         {/* RIGHT — QR + price + share + download */}
         <div {...dh("qr")} style={posStyle("qr")} className={`${card} relative flex flex-col p-6${ring}`}>
-          <div {...dh("qr.head")} style={posStyle("qr.head")} className={`flex gap-4${ring}`}>
-            <div className="flex flex-col items-center">
-              <div className="bg-white p-2.5">
+          <div {...dh("qr.head")} style={posStyle("qr.head")} className={`flex gap-8${ring}`}>
+            <div className="flex shrink-0 flex-col" style={{ width: cfg.qrSize + 20 }}>
+              <div className="flex w-full justify-center bg-white p-2.5">
                 <QRCodeSVG value={`https://thevertical.app/unidade/${unit.label}`} size={cfg.qrSize} level="M" />
               </div>
-              <span style={poppins} className="mt-2 flex items-center gap-2 rounded-[9px] border border-white/45 px-3 py-1.5 text-[14px] tracking-widest text-white">
+              <span style={poppins} className="mt-2 flex w-full items-center justify-center gap-2 rounded-[9px] border border-white/45 px-3 py-1.5 text-[14px] tracking-widest text-white">
                 AB47XQ
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-white/60" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
               </span>
             </div>
             <div className="flex-1">
               <p style={{ ...poppins, fontSize: cfg.qrTitle }} className="font-bold leading-snug">{t("share.accessDetails")}</p>
-              <p style={poppins} className="mt-2 text-[11px] leading-snug text-white">{t("share.scanQr")}</p>
+              <p style={poppins} className="mt-2 text-[14px] leading-snug text-white">{t("share.scanQr")}</p>
             </div>
           </div>
 
-          <div {...dh("qr.price")} style={posStyle("qr.price")} className={`mt-6 border-t border-white/10 pt-5${ring}`}>
+          <div {...dh("qr.price")} style={posStyle("qr.price")} className={`mt-16 pt-2${ring}`}>
             <p style={{ fontFamily: "var(--font-recia), Georgia, serif", fontSize: cfg.price }} className="font-bold leading-none tracking-wide">{formatBRL(unit.price)}</p>
             <p style={poppins} className="mt-1 text-xs text-white">{unit.area} m²</p>
           </div>
 
-          <div {...dh("qr.share")} style={posStyle("qr.share")} className={`mb-6 mt-6 border-t border-white/10 pt-5${ring}`}>
+          <div {...dh("qr.share")} style={posStyle("qr.share")} className={`mb-6 mt-10 pt-2${ring}`}>
             <p style={poppins} className="text-[15px] font-bold">{t("apt.share")}</p>
             <div className="mt-3 flex gap-3">
               {[
@@ -254,7 +277,7 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
                 { label: "Email", icon: <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg> },
                 { label: t("share.more"), icon: <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg> },
               ].map((s) => (
-                <button key={s.label} type="button" aria-label={s.label} onClick={onShared} style={{ width: cfg.circle, height: cfg.circle }} className="flex items-center justify-center rounded-full border border-white/15 bg-[rgba(166,166,166,0.20)] text-white/85 backdrop-blur-md transition hover:border-accent hover:bg-accent hover:text-white">
+                <button key={s.label} type="button" aria-label={s.label} onClick={onShared} className="flex aspect-square flex-1 items-center justify-center rounded-full border border-white/70 bg-transparent text-white transition hover:border-accent hover:bg-accent hover:text-white">
                   {s.icon}
                 </button>
               ))}
@@ -262,11 +285,13 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
           </div>
 
           <div className="mt-auto">
-            <button {...dh("qr.save")} type="button" onClick={onShared} style={{ ...poppins, ...posStyle("qr.save") }} className={`w-full rounded-[14px] border border-white/15 bg-[rgba(166,166,166,0.23)] py-3.5 text-sm font-semibold text-white backdrop-blur-md transition hover:border-accent hover:bg-accent${ring}`}>
+            <button {...dh("qr.save")} type="button" onClick={onShared} style={{ ...poppins, ...posStyle("qr.save") }} className={`w-full rounded-[14px] border border-white/70 bg-transparent py-3.5 text-sm font-semibold text-white transition hover:border-accent hover:bg-accent${ring}`}>
               {t("share.download")}
             </button>
           </div>
         </div>
+      </div>
+      </div>
       </div>
 
       {/* bottom dock — a single "Voltar" */}
