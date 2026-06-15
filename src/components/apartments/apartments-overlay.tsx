@@ -28,6 +28,9 @@ import ThankYouScreen from "@/components/apartments/thank-you-screen";
 // Hero image natural size + tower facade as a perspective quad per slab.
 const IMG_W = 1600;
 const IMG_H = 900;
+// The frame the Apartamentos view sits on (hero START_FRAME) — rendered inside the
+// units layer so mix-blend-mode can blend the status colours into the building.
+const APT_BASE_FRAME = "/frames/explore/0048.webp";
 
 type Pt = [number, number];
 type Quad = { TL: Pt; TR: Pt; BR: Pt; BL: Pt };
@@ -284,7 +287,8 @@ export default function ApartmentsOverlay() {
   const [expandClosing, setExpandClosing] = useState(false); // play zoom-out before unmount
   // Solar-position mode: clicking the sun hides the status legend and shows a
   // slider that scrubs a day/night (or winter) video of the building.
-  const [solarMode, setSolarMode] = useState(false);
+  const solarMode = useExperience((s) => s.solarMode); // driven from the main dock's sun button
+  const setSolarMode = useExperience((s) => s.setSolarMode);
   const [solarT, setSolarT] = useState(0.324); // 0..1 slider → video position (default ≈ 08:00)
   const solarCanvasRef = useRef<HTMLCanvasElement>(null);
   const solarImgsRef = useRef<HTMLImageElement[]>([]);
@@ -319,7 +323,7 @@ export default function ApartmentsOverlay() {
     setRoomView(null);
     setSolarMode(false);
     picksRef.current = {}; // re-roll room images for the new unit
-  }, [selected]);
+  }, [selected, setSolarMode]);
 
   // Re-tapping the Apartamentos dock item (bumps navTick) returns to the base
   // apartments view — close any open unit detail / expanded / solar / 360.
@@ -332,7 +336,8 @@ export default function ApartmentsOverlay() {
     setShare(false);
     setThanks(false);
     setRoomView(null);
-  }, [navTick]);
+    setFilters(DEFAULT_FILTERS); // open clean — no status colours until the user picks a filter
+  }, [navTick, setSolarMode]);
 
   // Enable calibration when the URL has ?cal=1; load any saved overrides.
   useEffect(() => {
@@ -701,35 +706,8 @@ export default function ApartmentsOverlay() {
         />
       )}
 
-      {/* selected unit stays marked on the solar view (its own facade calibration) */}
-      {solarMode && selected && solarFacade && !fcal && (() => {
-        const lf = LINE_FACE[selected.line];
-        const row = FLOORS.indexOf(selected.floor);
-        if (!lf || row < 0) return null;
-        const map = solarFacade.maps[lf.face];
-        const corners: Pt[] = [map(lf.col / lf.cols, row / ROWS), map((lf.col + 1) / lf.cols, row / ROWS), map((lf.col + 1) / lf.cols, (row + 1) / ROWS), map(lf.col / lf.cols, (row + 1) / ROWS)];
-        const lx = (corners[0][0] + corners[3][0]) / 2 + 10;
-        const ly = (corners[0][1] + corners[3][1]) / 2;
-        return (
-          <div className="zy-solar-zoomout pointer-events-none absolute inset-0 z-[7]">
-            <svg className="absolute inset-0" width={solarFacade.w} height={solarFacade.h} viewBox={`0 0 ${solarFacade.w} ${solarFacade.h}`}>
-              <polygon
-                points={insetQuad(corners, 3)}
-                fill={STATUS_META[selected.status].dot}
-                fillOpacity={0.55}
-                stroke="rgba(255,255,255,0.95)"
-                strokeWidth={1.5}
-                strokeLinejoin="round"
-                style={{ filter: `drop-shadow(0 0 8px ${STATUS_META[selected.status].dot})` }}
-              />
-            </svg>
-            <div className="absolute z-[8]" style={{ left: lx, top: ly, transform: "translateY(-50%)", fontFamily: "var(--font-redhat), system-ui, sans-serif" }}>
-              <p className="text-[8px] font-medium leading-none text-white/85">{t("apt.apShort")}</p>
-              <p className="text-[20px] font-black leading-none text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">{selected.label}</p>
-            </div>
-          </div>
-        );
-      })()}
+      {/* solar is a standalone day/night view now (opened from the dock sun) — no
+          per-unit floor marking. */}
 
       {/* click-outside catcher — closes the unit detail. Sits below the hotspots
           (so other units stay clickable) and below the panel/filters. */}
@@ -747,26 +725,34 @@ export default function ApartmentsOverlay() {
           transition: "transform 700ms cubic-bezier(0.22, 1, 0.36, 1)",
         }}
       >
+      {/* paused 360 frame inside this layer — gives mix-blend-mode a backdrop so
+          the status colours blend INTO the building (the hero canvas behind is a
+          separate layer the blend can't reach). Aligned 1:1 with the hero. */}
+      {!solarMode && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={APT_BASE_FRAME} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+      )}
       {/* on-image hotspots (perspective grid) — hidden in solar mode (the solar
           view draws its own highlight from the solar calibration) */}
       {facade && !solarMode && (
-        <svg className="pointer-events-none absolute inset-0" width={facade.w} height={facade.h} viewBox={`0 0 ${facade.w} ${facade.h}`}>
+        <svg className="pointer-events-none absolute inset-0" width={facade.w} height={facade.h} viewBox={`0 0 ${facade.w} ${facade.h}`} style={{ mixBlendMode: "hard-light" }}>
           <defs>
-            {/* translucent glossy fill for the selected unit's band — keeps the status hue */}
+            {/* coloured-glass fill — saturated hue, glossy highlight at the top,
+                kept translucent so the render reads through it */}
             <linearGradient id="selGrad-available" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#b59dff" stopOpacity="0.7" />
-              <stop offset="45%" stopColor="#8b6dff" stopOpacity="0.46" />
-              <stop offset="100%" stopColor="#7a5cf0" stopOpacity="0.62" />
+              <stop offset="0%" stopColor="#c4b5fd" stopOpacity="0.7" />
+              <stop offset="45%" stopColor="#7c3aed" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#6d28d9" stopOpacity="0.66" />
             </linearGradient>
             <linearGradient id="selGrad-sold" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff8a8e" stopOpacity="0.7" />
-              <stop offset="45%" stopColor="#e5484d" stopOpacity="0.46" />
-              <stop offset="100%" stopColor="#c93a3f" stopOpacity="0.62" />
+              <stop offset="0%" stopColor="#fca5a5" stopOpacity="0.7" />
+              <stop offset="45%" stopColor="#ef4444" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#c81e1e" stopOpacity="0.66" />
             </linearGradient>
             <linearGradient id="selGrad-reserved" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffe066" stopOpacity="0.72" />
-              <stop offset="45%" stopColor="#f5c518" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#d9ad10" stopOpacity="0.64" />
+              <stop offset="0%" stopColor="#fde68a" stopOpacity="0.72" />
+              <stop offset="45%" stopColor="#f59e0b" stopOpacity="0.52" />
+              <stop offset="100%" stopColor="#d97706" stopOpacity="0.68" />
             </linearGradient>
           </defs>
           {FLOORS.map((floor, row) =>
@@ -786,19 +772,19 @@ export default function ApartmentsOverlay() {
                 <polygon
                   key={u.id}
                   points={insetQuad(corners, isSel ? 3 : 1.2)}
-                  fill={isSel ? `url(#selGrad-${u.status})` : STATUS_META[u.status].dot}
-                  fillOpacity={isSel ? 1 : isHov ? 0.65 : on ? 0.45 : fcal ? 0.5 : 0}
-                  stroke={fcal ? "rgba(255,255,255,0.9)" : isSel ? "rgba(255,255,255,0.95)" : isHov ? "rgba(255,255,255,0.85)" : "transparent"}
-                  strokeWidth={fcal ? 1 : isSel ? 1.5 : isHov ? 1.5 : 0}
+                  fill={STATUS_META[u.status].dot}
+                  fillOpacity={isSel || isHov || on ? 1 : fcal ? 0.5 : 0}
+                  stroke={fcal ? "rgba(255,255,255,0.9)" : isSel ? "rgba(255,255,255,0.98)" : isHov ? "rgba(255,255,255,0.85)" : on ? "rgba(255,255,255,0.8)" : "transparent"}
+                  strokeWidth={fcal ? 1 : isSel ? 2 : isHov ? 1.25 : on ? 1 : 0}
                   strokeLinejoin="round"
                   className="cursor-pointer outline-none"
                   style={{
                     pointerEvents: "all",
-                    transition: "fill-opacity 120ms ease",
+                    transition: "fill-opacity 200ms ease, filter 200ms ease",
                     filter: isSel
-                      ? `drop-shadow(0 0 8px ${STATUS_META[u.status].dot})`
+                      ? "drop-shadow(0 0 2px rgba(255,255,255,1)) drop-shadow(0 0 9px rgba(255,255,255,0.65))"
                       : isHov
-                      ? `drop-shadow(0 0 6px ${STATUS_META[u.status].dot})`
+                      ? `drop-shadow(0 0 5px ${STATUS_META[u.status].dot})`
                       : undefined,
                   }}
                   role="button"
@@ -1047,7 +1033,6 @@ export default function ApartmentsOverlay() {
             <div className="absolute bottom-0 left-[44px] z-30 flex translate-y-1/2 gap-2.5">
               <PlanActionBtn label={t("apt.save")} white="salvar-branco" purple="salvar" active={unitSaved} pressed={unitSaved} check={unitSaved} onClick={saveUnit} />
               <PlanActionBtn label={t("apt.expandPlan")} white="expandir" purple="expandir-roxo" onClick={() => setExpanded(true)} />
-              <PlanActionBtn label={t("apt.lighting")} white="iluminacao" purple="iluminacao-roxo" active={solarMode} pressed={solarMode} onClick={() => setSolarMode((s) => !s)} />
             </div>
 
             {/* floor plan — vertical asset, on the right, half in / half out */}
@@ -1079,16 +1064,21 @@ export default function ApartmentsOverlay() {
               Fade only (no transform) so the card glass keeps its blur. */}
           <div
             className={[
-              "absolute right-[4vw] top-1/2 z-10 flex w-[26vw] -translate-y-1/2 flex-col gap-2",
+              "absolute right-[4vw] top-1/2 z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
           >
             {FEATURES.map((f, i) => {
               const on = planFeatures[i];
+              const isLast = i === FEATURES.length - 1;
               return (
                 <div
                   key={f.titleKey}
-                  className="flex items-start gap-3 rounded-2xl rounded-l-none border border-white/50 bg-white/[0.08] py-4 pr-4 pl-[calc(26vw-340px)] backdrop-blur-md"
+                  className={[
+                    "flex items-start gap-3 rounded-2xl rounded-l-none border border-white/50 bg-white/[0.08] py-4 pr-4 backdrop-blur-md",
+                    // last card tucks under a plan notch → extend it less so its edge doesn't peek through
+                    isLast ? "ml-[12vw] pl-[calc(32vw-340px)]" : "pl-[calc(44vw-340px)]",
+                  ].join(" ")}
                 >
                   <div className="min-w-0 flex-1">
                     <h4 className="text-sm font-semibold leading-tight text-white">{t(f.titleKey)}</h4>
@@ -1116,7 +1106,7 @@ export default function ApartmentsOverlay() {
           {/* left: unit info (fade only — no backdrop-filter, kept stable above the plan) */}
           <div
             className={[
-              "absolute left-[4vw] top-1/2 z-10 w-[24vw] -translate-y-1/2",
+              "absolute left-[4vw] top-1/2 z-10 w-[40vw] -translate-y-1/2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
             style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }}

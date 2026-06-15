@@ -90,11 +90,31 @@ function PinIcon({ className = "" }: { className?: string }) {
   );
 }
 
-const NAV: { key: TKey; icon: (p: { className?: string }) => ReactNode; panel: Panel }[] = [
-  { key: "nav.explore", icon: ExploreIcon, panel: "none" },
+function SunIcon({ className = "" }: { className?: string }) {
+  // Same filled sun glyph used in the solar slider (public/aptos/icons/sol.svg).
+  return (
+    <svg viewBox="0 0 30 30" className={className} fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+      <path d="M29.8384 14.9102C29.8384 15.1034 29.8118 15.298 29.7261 15.4712C29.5152 15.8975 29.1673 16.2527 28.6755 16.342C28.1506 16.4368 26.4599 16.4286 25.9049 16.3684C24.1678 16.1797 24.1678 13.6407 25.9049 13.4519C26.4599 13.3917 28.1506 13.3835 28.6755 13.4784C29.1665 13.5677 29.5149 13.9228 29.726 14.3492C29.8118 14.5224 29.8384 14.717 29.8384 14.9102Z" />
+      <path d="M14.9218 29.8384C14.7287 29.8384 14.5342 29.8117 14.3612 29.726C13.9351 29.5149 13.5802 29.1668 13.4909 28.6747C13.3961 28.1494 13.4043 26.4577 13.4645 25.9023C13.6522 24.1686 16.1913 24.1686 16.3791 25.9023C16.4392 26.4577 16.4474 28.1494 16.3527 28.6747C16.2634 29.166 15.9084 29.5147 15.4823 29.7259C15.3093 29.8117 15.1148 29.8384 14.9218 29.8384Z" />
+      <path d="M7.47939 15.6808C6.87514 9.04981 14.4861 4.90577 19.6683 9.14009C24.2325 12.8701 22.7798 20.2954 17.1811 22.041C12.719 23.4326 7.90592 20.3593 7.47939 15.6808Z" />
+      <path d="M21.3452 23.0314C21.1593 21.8467 22.3897 20.9375 23.4697 21.4883C23.8014 21.6579 25.5012 23.3615 25.6898 23.698C26.3925 24.9511 25.1339 26.3418 23.8151 25.7491C23.4578 25.5886 21.6752 23.8202 21.4938 23.4655C21.4455 23.3706 21.3607 23.1335 21.3452 23.0314Z" />
+      <path d="M3.98058 24.7217C3.98058 24.7214 3.98056 24.7211 3.98051 24.7208C3.90863 24.2231 3.99252 23.8849 4.29136 23.4883C4.54017 23.1572 6.01753 21.6825 6.33469 21.5102C7.63068 20.807 9.02784 22.2097 8.32698 23.5038C8.15108 23.8293 6.46866 25.5037 6.13965 25.688C5.29766 26.1603 4.12494 25.7109 3.98064 24.7226C3.9806 24.7223 3.98058 24.722 3.98058 24.7217Z" />
+      <path d="M3.97967 5.71379C3.72812 4.23729 5.28386 3.39736 6.44406 4.35585C6.7995 4.64951 8.14015 5.9737 8.32698 6.31934C9.01781 7.59429 7.6644 8.99235 6.37206 8.3339C6.03029 8.15972 4.27222 6.3923 4.10908 6.05031C4.06078 5.94817 3.99789 5.82323 3.97967 5.71379Z" />
+      <path d="M21.3457 7.28786C21.3454 7.28786 21.3452 7.28767 21.3452 7.28741C21.2897 6.93555 21.3635 6.59189 21.5394 6.2856C21.7262 5.9582 23.374 4.32028 23.703 4.13515C24.9972 3.40922 26.398 4.77171 25.7126 6.0877C25.5413 6.41692 23.8351 8.13509 23.508 8.31293C22.6341 8.78708 21.5014 8.27205 21.3462 7.28832C21.3462 7.28806 21.346 7.28786 21.3457 7.28786Z" />
+      <path d="M13.4781 4.02206C13.3943 3.48126 13.4025 1.85703 13.4636 1.29525C13.6495 -0.42201 16.1549 -0.423836 16.3727 1.24235C16.4465 1.80778 16.4401 3.34446 16.3782 3.91992C16.1932 5.62897 13.7306 5.65177 13.4781 4.02206Z" />
+      <path d="M0.0183223 15.1601C0.0180599 15.1601 0.0178362 15.1599 0.0177954 15.1596C-0.112243 14.3335 0.485559 13.5431 1.31477 13.4538C1.86798 13.3936 3.56225 13.3854 4.08539 13.4802C5.67302 13.7693 5.61469 16.1879 3.93774 16.3694C3.38271 16.4295 1.69208 16.4378 1.16713 16.3429C0.642309 16.2481 0.105652 15.7112 0.0188488 15.1605C0.0188079 15.1603 0.0185847 15.1601 0.0183223 15.1601Z" />
+    </svg>
+  );
+}
+
+// `solar: true` is a mode toggle (day/night inside Apartamentos), not a panel —
+// clicking it opens Apartamentos if needed and turns solar on.
+const NAV: { key: TKey; icon: (p: { className?: string }) => ReactNode; panel?: Panel; solar?: boolean }[] = [
   { key: "nav.apartments", icon: BuildingIcon, panel: "apartments" },
   { key: "nav.amenities", icon: StarIcon, panel: "amenities" },
+  { key: "nav.explore", icon: ExploreIcon, panel: "none" },
   { key: "nav.surroundings", icon: PinIcon, panel: "surroundings" },
+  { key: "nav.solar", icon: SunIcon, solar: true },
 ];
 
 /* — PT / EN language toggle (top-right on the Explore screen) — */
@@ -144,6 +164,8 @@ export default function Hud() {
   const hudDockHidden = useExperience((s) => s.hudDockHidden);
   const hudBrandHidden = useExperience((s) => s.hudBrandHidden);
   const lang = useExperience((s) => s.lang);
+  const solarMode = useExperience((s) => s.solarMode);
+  const setSolarMode = useExperience((s) => s.setSolarMode);
   const t = useT();
   // Dock hides when the user retracts the UI or an overlay auto-minimizes it.
   const dockHidden = uiCollapsed || dockMinimized;
@@ -153,6 +175,19 @@ export default function Hud() {
     if (p === "none") return closePanel();
     if (p === "apartments") setAptReady(false); // gate UI until the hero settles at frame 0
     openPanel(p);
+  };
+  // Sun button: toggles solar while in Apartamentos; from anywhere else it opens
+  // Apartamentos and goes straight into the day/night solar view.
+  const onSolar = () => {
+    if (panel === "apartments") {
+      setSolarMode(!solarMode);
+    } else {
+      // Go straight to the day/night solar view — skip the apartments intro/gate
+      // and don't bump nav (which would reset solar back off).
+      openPanel("apartments");
+      setAptReady(true);
+      setSolarMode(true);
+    }
   };
 
   return (
@@ -196,12 +231,12 @@ export default function Hud() {
           <ul className="pointer-events-auto inline-flex items-center gap-9 rounded-[30px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-10 pt-4 pb-7 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
             {NAV.map((item) => {
               const Icon = item.icon;
-              const isActive = activePanel === item.panel;
+              const isActive = item.solar ? solarMode : activePanel === item.panel && !solarMode;
               return (
                 <li key={item.key}>
                   <button
                     type="button"
-                    onClick={() => onNav(item.panel)}
+                    onClick={() => (item.solar ? onSolar() : onNav(item.panel!))}
                     aria-pressed={isActive}
                     className="group relative flex items-center justify-center"
                   >
