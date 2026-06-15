@@ -15,6 +15,7 @@ export const T = {
     // nav / hud
     "nav.explore": "Explorar",
     "nav.apartments": "Apartamentos",
+    "nav.solar": "Solar",
     "nav.amenities": "Áreas Comuns",
     "nav.surroundings": "Proximidades",
     "hud.showMenu": "Mostrar menu",
@@ -106,6 +107,7 @@ export const T = {
     // nav / hud
     "nav.explore": "Explore",
     "nav.apartments": "Apartments",
+    "nav.solar": "Solar",
     "nav.amenities": "Amenities",
     "nav.surroundings": "Surroundings",
     "hud.showMenu": "Show menu",
@@ -148,7 +150,7 @@ export const T = {
     "share.price": "Price",
     "share.layout": "Layout",
     "share.suites": "suites",
-    "share.options": "Add-ons",
+    "share.options": "Options",
     "share.extendedLiving": "Extended living",
     "share.fourSuites": "4 suites",
     "share.selectedImages": "Selected\nimages",

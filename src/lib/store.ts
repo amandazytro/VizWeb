@@ -49,14 +49,17 @@ type ExperienceState = {
   clearSaved: () => void;
   planFeatures: boolean[]; // which expanded-plan features are toggled on (→ brochure Opcionais)
   setPlanFeatures: (f: boolean[]) => void;
+  solarMode: boolean; // day/night solar view inside Apartamentos (driven from the main dock)
+  setSolarMode: (v: boolean) => void;
+  toggleSolar: () => void;
 };
 
 const LANG_KEY = "zy-lang";
 
 export const useExperience = create<ExperienceState>((set) => ({
   panel: "none",
-  openPanel: (p) => set({ panel: p, uiCollapsed: false }),
-  closePanel: () => set({ panel: "none", uiCollapsed: false }),
+  openPanel: (p) => set({ panel: p, uiCollapsed: false, solarMode: false }),
+  closePanel: () => set({ panel: "none", uiCollapsed: false, solarMode: false }),
   heading: 0,
   setHeading: (v) => set({ heading: ((v % 360) + 360) % 360 }),
   aptReady: false,
@@ -97,4 +100,7 @@ export const useExperience = create<ExperienceState>((set) => ({
   clearSaved: () => set({ saved: [] }),
   planFeatures: [true, false, false],
   setPlanFeatures: (f) => set({ planFeatures: f }),
+  solarMode: false,
+  setSolarMode: (v) => set({ solarMode: v }),
+  toggleSolar: () => set((s) => ({ solarMode: !s.solarMode })),
 }));
