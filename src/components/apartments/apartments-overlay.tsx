@@ -1081,7 +1081,7 @@ export default function ApartmentsOverlay() {
                   className={[
                     "flex items-start gap-3 rounded-2xl rounded-l-none border border-white/50 bg-white/[0.08] py-4 pr-4 backdrop-blur-md",
                     // last card tucks under a plan notch → extend it less so its edge doesn't peek through
-                    isLast ? "ml-[12vw] pl-[calc(32vw-340px)]" : "pl-[calc(44vw-340px)]",
+                    isLast ? "ml-[19vw] pl-[calc(25vw-340px)]" : "pl-[calc(44vw-340px)]",
                   ].join(" ")}
                 >
                   <div className="min-w-0 flex-1">
