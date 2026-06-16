@@ -1067,9 +1067,10 @@ export default function ApartmentsOverlay() {
               Fade only (no transform) so the card glass keeps its blur. */}
           <div
             className={[
-              "absolute right-[4vw] top-[calc(57%-70px)] z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
+              "absolute right-[8vw] top-[calc(57%-70px)] z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
+            style={{ zoom: 1.18 }}
           >
             {FEATURES.map((f, i) => {
               const on = planFeatures[i];
@@ -1109,10 +1110,10 @@ export default function ApartmentsOverlay() {
           {/* left: unit info (fade only — no backdrop-filter, kept stable above the plan) */}
           <div
             className={[
-              "absolute left-[4vw] top-[calc(57%-70px)] z-10 w-[40vw] -translate-y-1/2",
+              "absolute left-[8vw] top-[calc(57%-70px)] z-10 w-[40vw] -translate-y-1/2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
-            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }}
+            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif", zoom: 1.18 }}
           >
             <h2 className="mb-6 text-3xl font-extrabold text-white">{selected.bedrooms} {t("apt.bedShort")}</h2>
             <div className="space-y-3.5">
