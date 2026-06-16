@@ -1,41 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-// ── SOFT password gate (client-side) ──────────────────────────────────────────
-// Shown on every new tab/session until the correct password is entered.
-// NOTE: this is a light lock — the password ships in the client bundle, so it
-// only deters casual access (good for a private preview). For real protection
-// we'd move it server-side (Next middleware + env var + cookie).
-const PASSWORD = "ZyTr0_202601";
-const KEY = "zy-unlocked";
-
-export default function PasswordGate() {
-  const [locked, setLocked] = useState(true);
+export default function LoginPage() {
   const [value, setValue] = useState("");
   const [error, setError] = useState(false);
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem(KEY) === "1") {
-      setLocked(false);
-    }
-  }, []);
-
-  if (!locked) return null;
-
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (value === PASSWORD) {
-      sessionStorage.setItem(KEY, "1");
-      setLocked(false);
-    } else {
+    setBusy(true);
+    setError(false);
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: value }),
+      });
+      if (res.ok) {
+        // full reload so the middleware re-evaluates with the new cookie
+        window.location.href = "/";
+        return;
+      }
+      setError(true);
+    } catch {
       setError(true);
     }
+    setBusy(false);
   };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-[#05101c] text-white">
-      {/* blurred building backdrop for ambience */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/frames/explore/0048.webp" alt="" className="pointer-events-none absolute inset-0 h-full w-full scale-105 object-cover opacity-30 blur-xl" />
       <div className="absolute inset-0 bg-[#05101c]/55" />
@@ -72,10 +67,11 @@ export default function PasswordGate() {
 
         <button
           type="submit"
+          disabled={busy}
           style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif" }}
-          className="mt-5 w-full rounded-full border border-white/70 bg-transparent py-3 text-sm font-semibold text-white transition hover:border-accent hover:bg-accent"
+          className="mt-5 w-full rounded-full border border-white/70 bg-transparent py-3 text-sm font-semibold text-white transition hover:border-accent hover:bg-accent disabled:opacity-50"
         >
-          Entrar
+          {busy ? "Entrando…" : "Entrar"}
         </button>
       </form>
     </div>
