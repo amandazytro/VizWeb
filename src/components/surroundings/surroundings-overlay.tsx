@@ -7,11 +7,13 @@ import { useLang, useT, pick } from "@/lib/i18n";
 import { POIS, bgFor, type Poi, type PoiKey } from "@/lib/surroundings";
 import { ROUTES } from "@/lib/routes";
 import MarkerPill from "@/components/marker-pill";
+import { useUiScale } from "@/lib/use-ui-scale";
 
 // Fixed display order for the left detail accordion (matches the Figma states).
 const POI_ORDER: PoiKey[] = ["universidade", "academia", "restaurante", "shopping", "supermercado"];
 
 function Marker({ poi, name, active, pos, onClick }: { poi: Poi; name: string; active: boolean; pos: { x: number; y: number }; onClick: () => void }) {
+  const uiScale = useUiScale();
   return (
     <button
       type="button"
@@ -25,6 +27,7 @@ function Marker({ poi, name, active, pos, onClick }: { poi: Poi; name: string; a
         left: `${pos.x}%`,
         top: `${pos.y}%`,
         transform: active ? "translate(-50%,-50%)" : "translate(-22px,-50%)",
+        zoom: uiScale,
       }}
       className="pointer-events-auto absolute"
     >
@@ -77,6 +80,7 @@ function SurroundingsView({
 }) {
   const lang = useLang();
   const t = useT();
+  const uiScale = useUiScale();
   // Endpoint (at the POI) + midpoint (centre of the line) in viewport %, measured
   // from the RENDERED route path so the red icon lands at the end and the badge at
   // the middle. (Measuring a detached path is unreliable, so we ref the live one.)
@@ -174,7 +178,7 @@ function SurroundingsView({
       {selected && badgePos && (
         <div
           key={`badge-${selected.key}`}
-          style={{ left: `${badgePos.x}%`, top: `${badgePos.y}%` }}
+          style={{ left: `${badgePos.x}%`, top: `${badgePos.y}%`, zoom: uiScale }}
           className="pointer-events-auto absolute z-[5] flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-[26px] border-2 border-white/45 bg-[#5F2EF9] text-sm font-semibold text-white shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition duration-300 hover:scale-110 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35),0_0_28px_8px_rgba(134,103,234,0.75)]"
         >
           {selected.minutes} min
@@ -187,7 +191,7 @@ function SurroundingsView({
       {selected && (
         <aside
           onClick={(e) => e.stopPropagation()}
-          style={{ height: "56vh", aspectRatio: "302 / 603", fontFamily: "var(--font-redhat), system-ui, sans-serif" }}
+          style={{ height: 520, aspectRatio: "302 / 603", fontFamily: "var(--font-redhat), system-ui, sans-serif", zoom: uiScale }}
           className={[
             // big frosted white back-holder that ENGLOBES the front elements
             "pointer-events-auto absolute left-8 top-[20%] rounded-[46px] border border-white/15 bg-white/[0.07] shadow-[0_28px_70px_-18px_rgba(0,0,0,0.55)] backdrop-blur-[12px] transition-all duration-300 ease-out",
@@ -225,12 +229,12 @@ function SurroundingsView({
                     onClick={() => setSel(key)}
                     className="flex w-full items-baseline justify-between gap-3 py-2 pl-4 text-left transition-colors hover:text-white"
                   >
-                    <span className={["text-[14px] transition-colors", open ? "font-bold text-[#c4adff] [text-shadow:0_0_12px_rgba(150,103,234,0.6)]" : "font-normal text-white"].join(" ")}>{pick(lang, p.name)}</span>
-                    <span className="shrink-0 text-[10px] font-light text-white/80">{p.km}</span>
+                    <span className={["text-[17px] transition-colors", open ? "font-bold text-[#c4adff] [text-shadow:0_0_12px_rgba(150,103,234,0.6)]" : "font-normal text-white"].join(" ")}>{pick(lang, p.name)}</span>
+                    <span className="shrink-0 text-[12px] font-light text-white/80">{p.km}</span>
                   </button>
                   <div className={["grid transition-[grid-template-rows] duration-300 ease-out", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"].join(" ")}>
                     <div className={["overflow-hidden transition-opacity duration-300", open ? "opacity-100" : "opacity-0"].join(" ")}>
-                      <p className="pb-3 pl-4 text-[10px] font-light leading-snug text-white/65">{pick(lang, p.description)}</p>
+                      <p className="pb-3 pl-4 text-[12px] font-light leading-snug text-white/65">{pick(lang, p.description)}</p>
                     </div>
                   </div>
                 </div>
