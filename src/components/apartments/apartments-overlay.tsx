@@ -21,6 +21,7 @@ import {
 } from "@/lib/apartments";
 import { plantaFor, plantaWideFor } from "@/lib/plantas";
 import { hotspotsFor, ROOM_LABEL, type Hotspot, type RoomKey } from "@/lib/ambientes";
+import { useUiScale } from "@/lib/use-ui-scale";
 import Panorama360 from "@/components/Panorama360";
 import ShareScreen from "@/components/apartments/share-screen";
 import ThankYouScreen from "@/components/apartments/thank-you-screen";
@@ -270,6 +271,7 @@ export default function ApartmentsOverlay() {
   const planFeatures = useExperience((s) => s.planFeatures);
   const setPlanFeatures = useExperience((s) => s.setPlanFeatures);
   const clearSaved = useExperience((s) => s.clearSaved);
+  const uiScale = useUiScale();
   // Filters retract before the dock; expand after it (stagger via transition-delay).
   const filterDelay = uiCollapsed ? "0ms" : "150ms";
   const open = panel === "apartments";
@@ -850,7 +852,7 @@ export default function ApartmentsOverlay() {
           "pointer-events-auto absolute right-9 top-1/2 flex w-[156px] -translate-y-1/2 flex-col items-stretch gap-3 transition-all duration-300 ease-out",
           solarMode ? "pointer-events-none translate-x-[210px] opacity-0" : uiCollapsed ? "translate-x-[210px]" : "translate-x-0",
         ].join(" ")}
-        style={{ transitionDelay: filterDelay }}
+        style={{ transitionDelay: filterDelay, zoom: uiScale }}
       >
         {STATUS_ORDER.map((s) => {
           const on = filters.active.includes(s);
@@ -884,8 +886,8 @@ export default function ApartmentsOverlay() {
       </div>
 
       {/* solar slider (vertical, right) — rises in when solar mode opens (as the
-          status legend retracts). Moon at top, sun at bottom. */}
-      <div className="absolute right-9 top-1/2 z-30 -translate-y-1/2">
+          status legend retracts). Sun at top, moon at bottom. */}
+      <div className="absolute right-9 top-1/2 z-30 -translate-y-1/2" style={{ zoom: uiScale }}>
         <div
           className={[
             "flex w-[56px] flex-col items-center gap-3 transition-all duration-300 ease-out",
@@ -898,16 +900,16 @@ export default function ApartmentsOverlay() {
             <span style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }} className="text-[11px] font-light text-white">{solarTime}</span>
           </div>
           {/* slider capsule */}
-          <div className="flex h-[46vh] w-full flex-col items-center rounded-[18px] border border-white/10 bg-[rgba(166,166,166,0.20)] py-4 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
-            {/* moon (top) — uploaded svg, recoloured grey via mask */}
-            <span aria-hidden className="h-[18px] w-[18px] shrink-0 bg-white/55" style={{ WebkitMaskImage: "url(/aptos/icons/lua.svg)", maskImage: "url(/aptos/icons/lua.svg)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" }} />
+          <div className="flex h-[36vh] w-full flex-col items-center rounded-[18px] border border-white/10 bg-[rgba(166,166,166,0.20)] py-4 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
+            {/* sun (top) — uploaded svg, recoloured grey via mask */}
+            <span aria-hidden className="h-[20px] w-[20px] shrink-0 bg-white/55" style={{ WebkitMaskImage: "url(/aptos/icons/sol.svg)", maskImage: "url(/aptos/icons/sol.svg)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" }} />
             {/* custom vertical track — purple fill grows/shrinks; purple thumb */}
             <div ref={solarTrackRef} onPointerDown={onSolarPointer} className="relative my-3 w-[6px] flex-1 cursor-pointer rounded-full bg-white/25">
               <div className="absolute inset-x-0 bottom-0 rounded-full bg-accent" style={{ height: `${solarT * 100}%` }} />
               <div className="absolute left-1/2 h-[11px] w-[11px] -translate-x-1/2 translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_2px_#d1d1d1,0_1px_2px_rgba(0,0,0,0.4)]" style={{ bottom: `${solarT * 100}%` }} />
             </div>
-            {/* sun (bottom) — uploaded svg, recoloured grey via mask */}
-            <span aria-hidden className="h-[20px] w-[20px] shrink-0 bg-white/55" style={{ WebkitMaskImage: "url(/aptos/icons/sol.svg)", maskImage: "url(/aptos/icons/sol.svg)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" }} />
+            {/* moon (bottom) — uploaded svg, recoloured grey via mask */}
+            <span aria-hidden className="h-[18px] w-[18px] shrink-0 bg-white/55" style={{ WebkitMaskImage: "url(/aptos/icons/lua.svg)", maskImage: "url(/aptos/icons/lua.svg)", WebkitMaskSize: "contain", maskSize: "contain", WebkitMaskRepeat: "no-repeat", maskRepeat: "no-repeat", WebkitMaskPosition: "center", maskPosition: "center" }} />
           </div>
         </div>
       </div>
@@ -918,7 +920,7 @@ export default function ApartmentsOverlay() {
           "absolute bottom-[52px] left-8 flex items-stretch gap-5 transition-all duration-300 ease-out",
           solarMode ? "pointer-events-none opacity-0" : uiCollapsed ? "translate-y-[160px]" : "translate-y-0",
         ].join(" ")}
-        style={{ transitionDelay: filterDelay }}
+        style={{ transitionDelay: filterDelay, zoom: uiScale }}
       >
         <Card className="w-[225px]">
           <RangeSlider
@@ -966,7 +968,7 @@ export default function ApartmentsOverlay() {
           "absolute bottom-[52px] right-8 flex items-stretch gap-5 transition-all duration-300 ease-out",
           solarMode ? "pointer-events-none opacity-0" : uiCollapsed ? "translate-y-[160px]" : "translate-y-0",
         ].join(" ")}
-        style={{ transitionDelay: filterDelay }}
+        style={{ transitionDelay: filterDelay, zoom: uiScale }}
       >
         <Card className="w-[225px]">
           <RangeSlider
@@ -1006,6 +1008,7 @@ export default function ApartmentsOverlay() {
               "pointer-events-none absolute left-0 top-[44%] z-[10] h-[calc(min(360px,50vh)+22px)] w-[calc(min(290px,28vw)+11px)] -translate-y-1/2 rounded-tr-[40px] rounded-br-[48px] bg-white/20 backdrop-blur-[7.15px] transition-all duration-300 ease-out",
               uiCollapsed ? "-translate-x-[200%] opacity-0" : "translate-x-0",
             ].join(" ")}
+            style={{ zoom: uiScale }}
           />
 
           <aside
@@ -1013,7 +1016,7 @@ export default function ApartmentsOverlay() {
               "zy-fadein pointer-events-auto absolute left-0 top-[44%] z-[10] flex h-[min(360px,50vh)] w-[min(290px,28vw)] -translate-y-1/2 rounded-tr-[30px] rounded-br-[38px] bg-[rgba(0,0,0,0.26)] py-4 pl-[40px] pr-3 backdrop-blur-[7.15px] transition-all duration-300 ease-out",
               uiCollapsed ? "-translate-x-[200%] opacity-0" : "translate-x-0",
             ].join(" ")}
-            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }}
+            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif", zoom: uiScale }}
           >
             {/* specs — full width so the dividers run across, behind the plan */}
             <div className="relative z-10 flex w-full flex-col justify-center">

@@ -6,6 +6,7 @@ import { useExperience } from "@/lib/store";
 import { useLang, useT, pick } from "@/lib/i18n";
 import { AMENITIES, type Amenity } from "@/lib/amenities";
 import MarkerPill from "@/components/marker-pill";
+import { useUiScale } from "@/lib/use-ui-scale";
 import Panorama360 from "@/components/Panorama360";
 import PanScanVideo from "@/components/pan-scan-video";
 
@@ -62,6 +63,7 @@ function DetailDock({
   onGallery?: () => void;
 }) {
   const t = useT();
+  const uiScale = useUiScale();
   return (
     <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
       <div
@@ -69,6 +71,7 @@ function DetailDock({
           "absolute bottom-8 left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
           hidden ? "translate-y-[120px]" : "",
         ].join(" ")}
+        style={{ zoom: uiScale }}
       >
         <ul className="inline-flex items-center gap-8 rounded-[26px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-8 pt-4 pb-6 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
           <AmenityDockBtn label={t("apt.back")} onClick={onBack}>
@@ -89,6 +92,7 @@ function DetailDock({
         type="button"
         onClick={() => setHidden((v) => !v)}
         aria-label={hidden ? t("hud.showMenu") : t("hud.hideMenu")}
+        style={{ zoom: uiScale }}
         className="absolute bottom-2 left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
       >
         <svg viewBox="0 0 24 24" className={["h-3.5 w-3.5 transition-transform", hidden ? "" : "rotate-180"].join(" ")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
@@ -160,11 +164,12 @@ function StillViewer({ images, onClose }: { images: string[]; onClose: () => voi
 }
 
 function Marker({ amenity, name, onSelect }: { amenity: Amenity; name: string; onSelect: (a: Amenity) => void }) {
+  const uiScale = useUiScale();
   return (
     <button
       type="button"
       onClick={() => onSelect(amenity)}
-      style={{ left: `${amenity.marker.x}%`, top: `${amenity.marker.y}%`, transform: "translate(-18px,-50%)" }}
+      style={{ left: `${amenity.marker.x}%`, top: `${amenity.marker.y}%`, transform: "translate(-18px,-50%)", zoom: uiScale }}
       className="pointer-events-auto absolute"
     >
       <MarkerPill src={`/areas-comuns/icons/${amenity.icon}.svg`} label={name} />
@@ -181,6 +186,7 @@ export default function AmenitiesOverlay() {
   const setDockMinimized = useExperience((s) => s.setDockMinimized);
   const setHudDockHidden = useExperience((s) => s.setHudDockHidden);
   const setHudBrandHidden = useExperience((s) => s.setHudBrandHidden);
+  const uiScale = useUiScale();
   const [sel, setSel] = useState<Amenity | null>(null);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [pano360, setPano360] = useState<string | null>(null);
@@ -337,7 +343,7 @@ export default function AmenitiesOverlay() {
       {/* environment description card — top-left, just below the "THE VERTICAL"
           brand; transparent glass with a blurred backdrop. Hidden in the gallery. */}
       {area?.description && !galleryOpen && (
-        <div className="zy-fadein pointer-events-none absolute left-10 top-[92px] z-30 w-[290px] rounded-2xl border border-white/15 bg-white/10 px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.30)] backdrop-blur-xl backdrop-saturate-150">
+        <div style={{ zoom: uiScale }} className="zy-fadein pointer-events-none absolute left-10 top-[92px] z-30 w-[290px] rounded-2xl border border-white/15 bg-white/10 px-5 py-6 shadow-[0_8px_28px_rgba(0,0,0,0.30)] backdrop-blur-xl backdrop-saturate-150">
           <h3 style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }} className="text-[15px] font-bold leading-tight text-white">
             {pick(lang, area.name)}
           </h3>

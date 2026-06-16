@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useExperience, type Lang, type Panel } from "@/lib/store";
 import { useT, type TKey } from "@/lib/i18n";
+import { useUiScale } from "@/lib/use-ui-scale";
 
 function ChevronIcon({ className = "" }: { className?: string }) {
   return (
@@ -121,6 +122,7 @@ const NAV: { key: TKey; icon: (p: { className?: string }) => ReactNode; panel?: 
 function LangToggle() {
   const lang = useExperience((s) => s.lang);
   const setLang = useExperience((s) => s.setLang);
+  const uiScale = useUiScale();
   // rehydrate the saved choice after mount (kept out of the store initializer to
   // avoid an SSR/CSR hydration mismatch)
   useEffect(() => {
@@ -129,7 +131,7 @@ function LangToggle() {
   }, [setLang]);
   return (
     <div
-      style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif" }}
+      style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", zoom: uiScale }}
       className="pointer-events-auto absolute right-10 top-10 flex items-center overflow-hidden rounded-full border border-white/15 bg-[rgba(166,166,166,0.20)] text-[11px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-md"
     >
       {(["pt", "en"] as const).map((l) => (
@@ -166,6 +168,7 @@ export default function Hud() {
   const lang = useExperience((s) => s.lang);
   const solarMode = useExperience((s) => s.solarMode);
   const setSolarMode = useExperience((s) => s.setSolarMode);
+  const uiScale = useUiScale();
   const t = useT();
   // Dock hides when the user retracts the UI or an overlay auto-minimizes it.
   const dockHidden = uiCollapsed || dockMinimized;
@@ -194,7 +197,7 @@ export default function Hud() {
     <div className="pointer-events-none fixed inset-0 z-50 select-none">
       {/* ── Brand ── (inset from the edge, sitting just below the compass) */}
       {!hudBrandHidden && (
-      <div className="absolute left-10 top-10">
+      <div className="absolute left-10 top-10" style={{ zoom: uiScale }}>
         <span
           style={{ fontFamily: "var(--font-recia), Georgia, serif", fontSize: "clamp(26px, 2.05vw, 39px)" }}
           className="font-bold tracking-[0.02em] text-white drop-shadow"
@@ -209,7 +212,7 @@ export default function Hud() {
 
       {/* ── Top-center: orientation compass (Explorar + Apartamentos; hidden in expanded plan) ── */}
       {(panel === "none" || panel === "apartments") && !aptExpanded && (
-        <div className="absolute left-1/2 top-6 -translate-x-1/2">
+        <div className="absolute left-1/2 top-6 -translate-x-1/2" style={{ zoom: uiScale }}>
           <Compass heading={heading} lang={lang} />
         </div>
       )}
@@ -226,7 +229,7 @@ export default function Hud() {
             "absolute bottom-[38px] left-1/2 -translate-x-1/2 transition-transform duration-300 ease-out",
             dockHidden ? "translate-y-[150px]" : "",
           ].join(" ")}
-          style={{ transitionDelay: uiCollapsed ? "150ms" : "0ms" }}
+          style={{ transitionDelay: uiCollapsed ? "150ms" : "0ms", zoom: uiScale }}
         >
           <ul className="pointer-events-auto inline-flex items-center gap-9 rounded-[30px] border border-white/10 bg-[rgba(166,166,166,0.20)] px-10 pt-4 pb-7 shadow-[0_8px_28px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150">
             {NAV.map((item) => {
@@ -273,6 +276,7 @@ export default function Hud() {
           onClick={toggleUi}
           aria-label={dockHidden ? t("hud.showMenu") : t("hud.hideMenu")}
           aria-expanded={!dockHidden}
+          style={{ zoom: uiScale }}
           className="pointer-events-auto absolute bottom-[24px] left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] backdrop-blur-md"
         >
           <ChevronIcon className={["h-3.5 w-3.5 text-white/80 transition-transform", dockHidden ? "rotate-180" : ""].join(" ")} />
