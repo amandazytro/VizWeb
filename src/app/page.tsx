@@ -6,7 +6,6 @@ import SurroundingsOverlay from "@/components/surroundings/surroundings-overlay"
 import AmenitiesOverlay from "@/components/amenities/amenities-overlay";
 import PanelUrlSync from "@/components/panel-url-sync";
 import ZytroWatermark from "@/components/zytro-watermark";
-import PasswordGate from "@/components/password-gate";
 
 export default function Home() {
   return (
@@ -19,7 +18,6 @@ export default function Home() {
       <Hud />
       <ApartmentsOverlay />
       <ZytroWatermark />
-      <PasswordGate />
     </main>
   );
 }
