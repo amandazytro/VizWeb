@@ -1070,7 +1070,7 @@ export default function ApartmentsOverlay() {
               "absolute right-[8vw] top-[calc(57%-70px)] z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
-            style={{ zoom: 1.18 }}
+            style={{ zoom: 1.1 }}
           >
             {FEATURES.map((f, i) => {
               const on = planFeatures[i];
@@ -1081,7 +1081,7 @@ export default function ApartmentsOverlay() {
                   className={[
                     "flex items-start gap-3 rounded-2xl rounded-l-none border border-white/50 bg-white/[0.08] py-4 pr-4 backdrop-blur-md",
                     // last card tucks under a plan notch → extend it less so its edge doesn't peek through
-                    isLast ? "ml-[19vw] pl-[calc(25vw-340px)]" : "pl-[calc(44vw-340px)]",
+                    isLast ? "ml-[19vw] pl-[max(1.5rem,calc(25vw-340px))]" : "pl-[max(1.5rem,calc(44vw-340px))]",
                   ].join(" ")}
                 >
                   <div className="min-w-0 flex-1">
@@ -1113,7 +1113,7 @@ export default function ApartmentsOverlay() {
               "absolute left-[8vw] top-[calc(57%-70px)] z-10 w-[40vw] -translate-y-1/2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
-            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif", zoom: 1.18 }}
+            style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif", zoom: 1.1 }}
           >
             <h2 className="mb-6 text-3xl font-extrabold text-white">{selected.bedrooms} {t("apt.bedShort")}</h2>
             <div className="space-y-3.5">
