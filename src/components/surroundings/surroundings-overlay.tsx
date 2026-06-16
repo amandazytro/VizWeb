@@ -129,6 +129,18 @@ function SurroundingsView({
       className="surround-intro pointer-events-auto fixed inset-0 z-20"
       onClick={() => setSel(null)}
     >
+      {/* map scene (map + route + markers + badge) — eases into a slight zoom when a
+          POI is selected so the screen doesn't feel static. The side menu stays out. */}
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: selected ? "scale(1.12)" : "scale(1)",
+          // zoom focuses on the selected route's midpoint; switching POIs glides the
+          // focal point to the new path (transform-origin is transitioned too).
+          transformOrigin: selected && badgePos ? `${badgePos.x}% ${badgePos.y}%` : "50% 45%",
+          transition: "transform 900ms cubic-bezier(0.22, 1, 0.36, 1), transform-origin 900ms cubic-bezier(0.22, 1, 0.36, 1)",
+        }}
+      >
       {/* aerial map (home — no route) as the base */}
       <Image src={bgFor("home")} alt={t("surround.mapAlt")} fill priority sizes="100vw" className="object-cover" />
 
@@ -184,6 +196,7 @@ function SurroundingsView({
           {selected.minutes} min
         </div>
       )}
+      </div>
 
       {/* left detail panel — rebuilt 1:1 from Figma (frame 1:588): dark glass card
           rgba(0,0,0,0.26) blur 7.15, rounded only at the bottom (bl 62 / br 55),

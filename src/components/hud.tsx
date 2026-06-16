@@ -132,7 +132,7 @@ function LangToggle() {
   return (
     <div
       style={{ fontFamily: "var(--font-jakarta), system-ui, sans-serif", zoom: uiScale }}
-      className="pointer-events-auto absolute right-10 top-10 flex items-center overflow-hidden rounded-full border border-white/15 bg-[rgba(166,166,166,0.20)] text-[11px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-md"
+      className="pointer-events-auto absolute right-[104px] top-[38px] flex items-center overflow-hidden rounded-full border border-white/15 bg-[rgba(166,166,166,0.20)] text-[11px] font-semibold shadow-[0_4px_16px_rgba(0,0,0,0.3)] backdrop-blur-md"
     >
       {(["pt", "en"] as const).map((l) => (
         <button
