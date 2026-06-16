@@ -407,22 +407,21 @@ export default function AmenitiesOverlay() {
           {/* ── GALLERY state (blurred backdrop + horizontal strip) ── */}
           {sel.gallery && galleryOpen && (
             <>
+              {/* viewport-sized blurred backdrop (static + preloaded). Was a 324vh-wide
+                  blurred image inside the scroll canvas, which made the heavy blur lag
+                  and load late — now it's just the viewport, so it's cheap and instant. */}
+              <div aria-hidden="true" className="zy-fadein pointer-events-none absolute inset-0 overflow-hidden">
+                <Image src="/areas-comuns/bg-gallery.webp" alt="" fill priority sizes="100vw" className="scale-110 object-cover blur-[26px]" />
+              </div>
               {/* horizontal scroll — a fixed-ratio canvas (Figma frame 1090px tall →
                   100vh) reproduced 1:1; every element sits at its exact Figma
                   coordinate converted to vh (1px = 100/1090 vh). */}
               <div
                 ref={trackRef}
                 onScroll={(e) => setHudBrandHidden(e.currentTarget.scrollLeft > 20)}
-                className="pointer-events-auto absolute inset-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="amenity-zoom pointer-events-auto absolute inset-0 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 <div className="relative h-full" style={{ width: "324vh" }}>
-                  {/* blurred backdrop — exactly canvas-sized (scrolls 1:1, never extends
-                      the scroll past the content); overflow-hidden + a slight scale push
-                      the blur fringe off the edges so it covers the whole canvas */}
-                  <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-                    <Image src="/areas-comuns/bg-gallery.webp" alt="" fill sizes="330vw" className="scale-110 object-cover blur-[35px]" />
-                  </div>
-
                   {/* back button (top-left) */}
                   <button type="button" onClick={() => setGalleryOpen(false)} aria-label={t("am.backToImage")} className="absolute transition duration-200 hover:scale-110 hover:brightness-110" style={{ left: "16.6vh", top: "16.7vh", width: "5.75vh", height: "5.75vh" }}>
                     <VoltarIcon className="h-full w-full" />

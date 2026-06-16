@@ -849,7 +849,7 @@ export default function ApartmentsOverlay() {
       {/* status filter legend (right) — retracts to the right when solar mode opens */}
       <div
         className={[
-          "pointer-events-auto absolute right-9 top-1/2 flex w-[156px] -translate-y-1/2 flex-col items-stretch gap-3 transition-all duration-300 ease-out",
+          "pointer-events-auto absolute right-9 top-[calc(50%-10px)] flex w-[156px] -translate-y-1/2 flex-col items-stretch gap-3 transition-all duration-300 ease-out",
           solarMode ? "pointer-events-none translate-x-[210px] opacity-0" : uiCollapsed ? "translate-x-[210px]" : "translate-x-0",
         ].join(" ")}
         style={{ transitionDelay: filterDelay, zoom: uiScale }}
@@ -1067,7 +1067,7 @@ export default function ApartmentsOverlay() {
               Fade only (no transform) so the card glass keeps its blur. */}
           <div
             className={[
-              "absolute right-[4vw] top-1/2 z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
+              "absolute right-[4vw] top-[calc(57%-70px)] z-10 flex w-[44vw] -translate-y-1/2 flex-col gap-2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
           >
@@ -1109,7 +1109,7 @@ export default function ApartmentsOverlay() {
           {/* left: unit info (fade only — no backdrop-filter, kept stable above the plan) */}
           <div
             className={[
-              "absolute left-[4vw] top-1/2 z-10 w-[40vw] -translate-y-1/2",
+              "absolute left-[4vw] top-[calc(57%-70px)] z-10 w-[40vw] -translate-y-1/2",
               expandClosing ? "expand-fadeout" : "expand-fadein",
             ].join(" ")}
             style={{ fontFamily: "var(--font-redhat), system-ui, sans-serif" }}
@@ -1137,7 +1137,7 @@ export default function ApartmentsOverlay() {
           >
             {/* center floorplan + room hotspots ("olhinhos") */}
             <div className="absolute inset-0 flex items-center justify-center px-[16vw]">
-              <div ref={planRef} className="relative">
+              <div ref={planRef} className="relative" style={{ transform: "translateY(calc(7vh - 70px))" }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={plantaWideFor(selected.bedrooms)}
@@ -1201,7 +1201,7 @@ export default function ApartmentsOverlay() {
               type="button"
               onClick={() => setExpDockHidden((v) => !v)}
               aria-label={expDockHidden ? t("hud.showMenu") : t("hud.hideMenu")}
-              className="pointer-events-auto absolute bottom-2 left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
+              className="pointer-events-auto absolute bottom-[18px] left-1/2 z-10 flex h-5 w-8 -translate-x-1/2 items-center justify-center rounded-[6px] border border-white/10 bg-[rgba(166,166,166,0.28)] text-white/75 backdrop-blur-md"
             >
               <svg viewBox="0 0 24 24" className={["h-3.5 w-3.5 transition-transform", expDockHidden ? "" : "rotate-180"].join(" ")} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 15l6-6 6 6" /></svg>
             </button>

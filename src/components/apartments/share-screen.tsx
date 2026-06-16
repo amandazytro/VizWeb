@@ -174,7 +174,10 @@ export default function ShareScreen({ unit, onClose, onShared }: { unit: Unit; o
   const dh = (id: string) => (bcal ? { onPointerDown: startDrag(id) } : {});
   const ring = bcal ? " cursor-move rounded-[6px] outline-dashed outline-1 outline-accent/50" : "";
 
-  const card = "rounded-[14px] border border-white/10 bg-[rgba(166,166,166,0.23)] backdrop-blur-2xl backdrop-saturate-150";
+  // Light backdrop-blur — the page bg is already blurred, so a heavy backdrop-filter
+  // here (×4 cards, inside `zoom`) just janks the whole screen. Slightly higher fill
+  // opacity keeps the glass look cheaply.
+  const card = "rounded-[14px] border border-white/10 bg-[rgba(166,166,166,0.30)] backdrop-blur-sm";
 
   return (
     <div className="pointer-events-auto fixed inset-0 z-[70] overflow-hidden text-white">
