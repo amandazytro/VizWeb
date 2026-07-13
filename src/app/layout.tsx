@@ -66,6 +66,10 @@ export const metadata: Metadata = {
   title: "Zytro — Experiência Imobiliária Imersiva",
   description:
     "Um tour cinematográfico e interativo de um empreendimento imobiliário premium.",
+  icons: {
+    icon: [{ url: "/viz-favicon.png", type: "image/png" }],
+    apple: [{ url: "/viz-favicon.png", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
