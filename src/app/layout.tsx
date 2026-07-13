@@ -68,6 +68,7 @@ export const metadata: Metadata = {
     "Um tour cinematográfico e interativo de um empreendimento imobiliário premium.",
   icons: {
     icon: [{ url: "/viz-favicon.png", type: "image/png" }],
+    shortcut: [{ url: "/viz-favicon.png", type: "image/png" }],
     apple: [{ url: "/viz-favicon.png", type: "image/png" }],
   },
 };
